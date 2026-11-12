@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 255 247 237;
+  --surface: 255 255 255;
+  --ink: 17 24 39;
+  --muted: 107 114 128;
+  --line: 231 222 214;
+  --nav: 17 24 39;
+  --soft: 243 244 246;
+  --cream: 255 247 237;
+  --good: 22 163 74;
+  --warn: 180 83 9;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: 12 17 24;
+  --surface: 28 37 49;
+  --ink: 249 250 251;
+  --muted: 156 163 175;
+  --line: 55 65 81;
+  --nav: 8 12 20;
+  --soft: 17 24 39;
+  --cream: 41 36 32;
+  --good: 74 222 128;
+  --warn: 252 211 77;
+  color-scheme: dark;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Manrope, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(900px 420px at 0% -10%, rgb(249 115 22 / 0.14), transparent 55%),
+    rgb(var(--bg));
+  color: rgb(var(--ink));
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--line));
+  border-radius: 999px;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  #receipt,
+  #receipt * {
+    visibility: visible !important;
+  }
+
+  #receipt {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 80mm;
+    background: white !important;
+    color: black !important;
+  }
+}

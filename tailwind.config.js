@@ -1,0 +1,36 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{js,jsx}'],
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        bg: 'rgb(var(--bg) / <alpha-value>)',
+        surface: 'rgb(var(--surface) / <alpha-value>)',
+        ink: 'rgb(var(--ink) / <alpha-value>)',
+        muted: 'rgb(var(--muted) / <alpha-value>)',
+        line: 'rgb(var(--line) / <alpha-value>)',
+        nav: 'rgb(var(--nav) / <alpha-value>)',
+        soft: 'rgb(var(--soft) / <alpha-value>)',
+        cream: 'rgb(var(--cream) / <alpha-value>)',
+        good: 'rgb(var(--good) / <alpha-value>)',
+        warn: 'rgb(var(--warn) / <alpha-value>)',
+      },
+      opacity: {
+        8: '0.08',
+        15: '0.15',
+        45: '0.45',
+        65: '0.65',
+      },
+      fontFamily: {
+        sans: ['Manrope', 'Segoe UI', 'sans-serif'],
+        display: ['Fraunces', 'Georgia', 'serif'],
+      },
+      boxShadow: {
+        card: '0 18px 50px -28px rgb(17 24 39 / 0.45)',
+        dock: '0 20px 50px -20px rgb(17 24 39 / 0.55)',
+      },
+    },
+  },
+  plugins: [],
+}
