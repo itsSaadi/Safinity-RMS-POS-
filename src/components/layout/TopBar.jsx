@@ -48,11 +48,11 @@ export default function TopBar() {
   }
 
   return (
-    <header className="relative z-40 grid h-[72px] shrink-0 grid-cols-[auto_1fr_auto] items-center gap-3 bg-nav px-3 text-white md:px-5">
-      <div className="flex items-center gap-3">
-        <span className="grid h-11 w-11 place-items-center rounded-2xl bg-orange-500 font-display text-2xl">O</span>
+    <header className="relative z-40 grid h-14 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-3 bg-nav px-3 text-white md:px-4">
+      <div className="flex items-center gap-2">
+        <span className="grid h-9 w-9 place-items-center rounded-xl bg-orange-500 font-display text-xl">O</span>
         <div className="leading-tight">
-          <p className="font-display text-[22px] tracking-tight">{restaurant.name}</p>
+          <p className="font-display text-lg tracking-tight">{restaurant.name}</p>
           <p className="text-[10px] uppercase tracking-[0.22em] text-white/45">Restaurant POS</p>
         </div>
         <div className="ml-1 hidden items-center gap-2 rounded-full bg-white/8 px-3 py-2 text-sm text-white/80 lg:flex">
@@ -157,7 +157,7 @@ export default function TopBar() {
 
 function IconButton({ children, label, onClick }) {
   return (
-    <button type="button" aria-label={label} onClick={onClick} className="relative grid h-11 w-11 place-items-center rounded-full text-white/85 hover:bg-white/10">
+    <button type="button" aria-label={label} onClick={onClick} className="relative grid h-9 w-9 place-items-center rounded-full text-white/85 hover:bg-white/10">
       {children}
     </button>
   )
@@ -169,7 +169,7 @@ function Panel({ children, onClose }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
-      className="absolute right-4 top-[68px] w-[min(92vw,360px)] overflow-hidden rounded-3xl border border-line bg-surface text-ink shadow-dock"
+      className="absolute right-4 top-12 w-[min(92vw,320px)] overflow-hidden rounded-2xl border border-line bg-surface text-ink shadow-dock"
     >
       {children}
       <button type="button" onClick={onClose} className="w-full border-t border-line py-3 text-sm font-semibold text-muted">

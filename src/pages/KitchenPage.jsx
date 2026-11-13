@@ -70,6 +70,8 @@ export default function KitchenPage() {
   const [station, setStation] = useState('All')
   const [now, setNow] = useState(Date.now())
   const [ringing, setRinging] = useState(false)
+  const [dragId, setDragId] = useState(null)
+  const [overColumn, setOverColumn] = useState(null)
   const seenReady = useRef(null)
 
   useEffect(() => {
@@ -125,7 +127,8 @@ export default function KitchenPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange-500">Kitchen display</p>
-          <h1 className="font-display text-4xl leading-none">The pass</h1>
+          <h1 className="font-display text-2xl leading-none">The pass</h1>
+          <p className="mt-1 text-[11px] font-bold text-stone-500">Drag a ticket into another column</p>
         </div>
         <div className="flex items-center gap-2">
           <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold ${lateKey ? 'animate-pulse bg-red-600 text-white' : 'bg-stone-100 text-stone-500 dark:bg-white/10 dark:text-stone-300'}`}>
@@ -146,7 +149,22 @@ export default function KitchenPage() {
       </div>
       <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto pb-20 md:grid-cols-2 xl:grid-cols-4 xl:overflow-hidden">
         {board.map((column) => (
-          <section key={column.id} className={`flex min-h-[280px] flex-col rounded-[28px] p-2 xl:min-h-0 ${column.wash} ${column.id === 'ready' && ringing ? 'ring-2 ring-emerald-500' : ''}`}>
+          <section
+            key={column.id}
+            onDragOver={(event) => {
+              event.preventDefault()
+              setOverColumn(column.id)
+            }}
+            onDragLeave={() => setOverColumn((current) => (current === column.id ? null : current))}
+            onDrop={(event) => {
+              event.preventDefault()
+              const id = event.dataTransfer.getData('text/plain') || dragId
+              setOverColumn(null)
+              setDragId(null)
+              if (id) setPrepStatus(id, column.id)
+            }}
+            className={`flex min-h-[220px] flex-col rounded-2xl p-2 xl:min-h-0 ${column.wash} ${overColumn === column.id ? 'ring-2 ring-orange-500' : column.id === 'ready' && ringing ? 'ring-2 ring-emerald-500' : ''}`}
+          >
             <div className="flex items-center justify-between px-2 py-2">
               <h2 className="flex items-center gap-2 text-sm font-extrabold uppercase tracking-[0.14em]">
                 {column.id === 'ready' && <Bell size={15} className={ringing ? 'animate-bounce text-emerald-700' : 'text-emerald-700'} />}
@@ -163,10 +181,16 @@ export default function KitchenPage() {
                     now={now}
                     station={station}
                     action={column.action}
+                    dragging={dragId === order.id}
                     onAdvance={column.next ? () => advance(order.id, column.next) : null}
                     onItem={(itemId, ready) => {
                       audioContext()
                       setItemReady(order.id, itemId, ready)
+                    }}
+                    onDragStart={() => setDragId(order.id)}
+                    onDragEnd={() => {
+                      setDragId(null)
+                      setOverColumn(null)
                     }}
                   />
                 ))}
@@ -182,12 +206,25 @@ export default function KitchenPage() {
   )
 }
 
-function Ticket({ order, now, station, action, onAdvance, onItem }) {
+function Ticket({ order, now, station, action, onAdvance, onItem, dragging, onDragStart, onDragEnd }) {
   const late = (order.prepStatus === 'new' || order.prepStatus === 'preparing') && now - order.createdAt > DELAY
   const items = station === 'All' ? order.items : order.items.filter((item) => item.station === station)
   const buttonTone = action === 'Ready' ? 'bg-emerald-600' : action === 'Start' ? 'bg-orange-500' : 'bg-[#111827]'
   return (
-    <motion.article layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={`rounded-xl border bg-white px-2.5 py-2 text-[#1c1917] shadow-card dark:bg-[#241c16] dark:text-[#f6efe6] ${late ? 'border-red-400' : order.prepStatus === 'ready' ? 'border-emerald-300' : 'border-white/80 dark:border-white/10'}`}>
+    <motion.article
+      layout
+      draggable
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = 'move'
+        event.dataTransfer.setData('text/plain', order.id)
+        onDragStart()
+      }}
+      onDragEnd={onDragEnd}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: dragging ? 0.45 : 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      className={`cursor-grab rounded-xl border bg-white px-2.5 py-2 text-[#1c1917] shadow-card active:cursor-grabbing dark:bg-[#241c16] dark:text-[#f6efe6] ${late ? 'border-red-400' : order.prepStatus === 'ready' ? 'border-emerald-300' : 'border-white/80 dark:border-white/10'}`}
+    >
       <div className="flex items-center justify-between gap-2">
         <p className="truncate text-sm font-extrabold leading-none">{order.id}</p>
         <p className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[11px] font-bold tabular-nums ${late ? 'bg-red-600 text-white' : 'bg-stone-100 text-stone-800 dark:bg-white/10'}`}>

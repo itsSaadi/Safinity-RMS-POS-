@@ -71,7 +71,7 @@ export default function CheckoutModal({ onClose }) {
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-good/15 text-good">
             <Check size={28} />
           </div>
-          <h2 className="mt-4 text-center font-display text-4xl">Ticket sent</h2>
+          <h2 className="mt-3 text-center font-display text-2xl">Ticket sent</h2>
           <p className="text-center text-sm text-muted">{done.id} is on the kitchen pass</p>
           <div className="mt-5 space-y-2 rounded-3xl bg-soft p-4 text-sm">
             <div className="flex justify-between"><span>Total</span><strong>{pkr(done.amount)}</strong></div>
@@ -110,11 +110,11 @@ export default function CheckoutModal({ onClose }) {
             <Mini label="Tax" value={pkr(totals.tax)} />
             <Mini label="Delivery" value={pkr(totals.delivery)} />
           </div>
-          <p className="mt-4 font-display text-5xl leading-none text-orange-500">{pkr(totals.total)}</p>
+          <p className="mt-3 font-display text-3xl leading-none text-orange-500">{pkr(totals.total)}</p>
         </div>
         <div className="flex max-h-[94vh] flex-col p-5">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-4xl">Payment</h2>
+            <h2 className="font-display text-2xl">Payment</h2>
             <button type="button" aria-label="Close" onClick={onClose} className="grid h-11 w-11 place-items-center rounded-full bg-soft"><X /></button>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">

@@ -17,11 +17,11 @@ export default function MorePage() {
   return (
     <div className="h-full overflow-y-auto px-4 py-5 pb-24 md:px-8">
       <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange-500">Counter tools</p>
-      <h1 className="font-display text-5xl leading-none">More</h1>
+      <h1 className="font-display text-3xl leading-none">More</h1>
       <p className="mt-2 max-w-xl text-sm text-muted">Everything around the pass: history, riders, the drawer, and the people on this shift. {orders.length} tickets are open in today’s book.</p>
       <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {tiles.map((tile) => (
-          <Link key={tile.to} to={tile.to} className={`group flex min-h-40 flex-col justify-between rounded-[32px] bg-surface p-5 shadow-card ${tile.span || ''}`}>
+          <Link key={tile.to} to={tile.to} className={`group flex min-h-28 flex-col justify-between rounded-2xl bg-surface p-4 shadow-card ${tile.span || ''}`}>
             <div className="flex items-start justify-between">
               <span className="grid h-12 w-12 place-items-center rounded-2xl bg-orange-500 text-white">
                 <tile.icon size={20} />
@@ -29,7 +29,7 @@ export default function MorePage() {
               <ArrowUpRight className="text-muted transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </div>
             <div>
-              <h2 className="text-2xl font-extrabold">{tile.title}</h2>
+              <h2 className="text-lg font-extrabold">{tile.title}</h2>
               <p className="mt-1 text-sm text-muted">{tile.copy}</p>
             </div>
           </Link>

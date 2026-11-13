@@ -56,12 +56,12 @@ export default function CustomizeModal({ product, line, onClose, onSave }) {
   return (
     <Overlay onClose={onClose} className="max-w-5xl rounded-t-[32px] sm:rounded-[32px]">
       <div className="grid max-h-[94vh] md:grid-cols-[0.9fr_1.1fr]">
-        <FoodImage src={product.image} alt={product.name} className="h-56 md:h-full md:min-h-[560px]" />
+        <FoodImage src={product.image} alt={product.name} className="h-32 md:h-full md:min-h-[240px]" />
         <div className="flex max-h-[94vh] flex-col">
           <div className="flex items-start justify-between gap-3 px-5 pb-2 pt-5">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted">{product.categoryName || categoryName(product.category)} · {product.code}</p>
-              <h2 className="font-display text-4xl leading-none">{product.name}</h2>
+              <h2 className="font-display text-2xl leading-none">{product.name}</h2>
               <p className="mt-2 text-sm text-muted">{product.description}</p>
             </div>
             <button type="button" aria-label="Close" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-soft"><X size={18} /></button>
@@ -133,7 +133,7 @@ export default function CustomizeModal({ product, line, onClose, onSave }) {
           <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-4">
             <div>
               <p className="text-xs uppercase tracking-[0.14em] text-muted">Item total</p>
-              <p className="font-display text-3xl leading-none">{pkr(unitPrice * qty)}</p>
+              <p className="font-display text-2xl leading-none">{pkr(unitPrice * qty)}</p>
             </div>
             <button type="button" onClick={save} className="h-14 rounded-2xl bg-orange-500 px-8 text-base font-extrabold text-white">
               {line ? 'Update item' : 'Add to order'}

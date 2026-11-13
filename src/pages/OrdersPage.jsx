@@ -39,7 +39,7 @@ export default function OrdersPage({ source = 'today' }) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange-500">{source === 'history' ? 'Previous services' : 'Live service'}</p>
-          <h1 className="font-display text-4xl leading-none">{source === 'history' ? 'Order history' : 'Today’s orders'}</h1>
+          <h1 className="font-display text-2xl leading-none">{source === 'history' ? 'Order history' : 'Today’s orders'}</h1>
         </div>
         <div className="flex rounded-full bg-surface p-1 shadow-card">
           <button type="button" onClick={() => setMode('cards')} className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold ${mode === 'cards' ? 'bg-ink text-white' : ''}`}><LayoutGrid size={15} /> Cards</button>

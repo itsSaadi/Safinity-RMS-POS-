@@ -31,7 +31,7 @@ export default function CartPanel({ onEdit, onCheckout, onClose, mobile }) {
       <div className="flex items-center justify-between px-4 pb-2 pt-4">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">This order</p>
-          <h2 className="font-display text-3xl leading-none">{totals.count} items</h2>
+          <h2 className="font-display text-xl leading-none">{totals.count} items</h2>
         </div>
         <div className="flex items-center gap-2">
           {cart.lines.length > 0 && (
@@ -163,7 +163,7 @@ export default function CartPanel({ onEdit, onCheckout, onClose, mobile }) {
         <Row label="Delivery" value={pkr(totals.delivery)} />
         <div className="mt-3 flex items-end justify-between">
           <span className="text-xs uppercase tracking-[0.16em] text-white/50">Grand total</span>
-          <span className="font-display text-4xl leading-none text-orange-400">{pkr(totals.total)}</span>
+          <span className="font-display text-2xl leading-none text-orange-400">{pkr(totals.total)}</span>
         </div>
         <button
           type="button"
@@ -174,7 +174,7 @@ export default function CartPanel({ onEdit, onCheckout, onClose, mobile }) {
             }
             onCheckout()
           }}
-          className="mt-4 h-14 w-full rounded-2xl bg-orange-500 text-base font-extrabold text-white"
+          className="mt-3 h-11 w-full rounded-2xl bg-orange-500 text-sm font-extrabold text-white"
         >
           Checkout · {pkr(totals.total)}
         </button>

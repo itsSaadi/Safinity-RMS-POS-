@@ -13,8 +13,8 @@ import { CashPage, ExpensesPage, StatsPage } from './pages/DeskPages'
 
 function ShiftGate() {
   const { user, booting, signIn } = usePos()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState('cashier@safinity.com')
+  const [password, setPassword] = useState('1234')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -57,11 +57,11 @@ function ShiftGate() {
   }
   return (
     <div className="grid h-dvh place-items-center bg-bg px-6">
-      <div className="w-full max-w-md rounded-[32px] bg-surface px-8 py-10 text-center shadow-card">
-        <span className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-orange-500 font-display text-3xl text-white">O</span>
-        <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.18em] text-orange-500">{restaurant.name}</p>
-        <h1 className="mt-2 font-display text-5xl leading-none">Sign in</h1>
-        <p className="mt-3 text-sm text-muted">Same account as the RMS office. The counter then uses live menu and orders.</p>
+      <div className="w-full max-w-sm rounded-3xl bg-surface px-6 py-8 text-center shadow-card">
+        <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-orange-500 font-display text-2xl text-white">O</span>
+        <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.18em] text-orange-500">{restaurant.name}</p>
+        <h1 className="mt-2 font-display text-3xl leading-none">Sign in</h1>
+        <p className="mt-2 text-sm text-muted">Demo counter. Use cashier@safinity.com and 1234.</p>
         <form onSubmit={submit} className="mt-6 space-y-3 text-left">
           <label className="block text-[11px] font-bold uppercase tracking-[0.14em] text-muted">
             Email

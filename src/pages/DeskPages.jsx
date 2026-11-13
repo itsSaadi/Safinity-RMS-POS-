@@ -70,7 +70,7 @@ function Tile({ label, value }) {
   return (
     <article className="rounded-[28px] bg-nav p-5 text-white">
       <p className="text-xs uppercase tracking-[0.16em] text-white/50">{label}</p>
-      <p className="mt-2 font-display text-4xl">{value}</p>
+      <p className="mt-2 font-display text-2xl">{value}</p>
     </article>
   )
 }
@@ -163,7 +163,7 @@ export function CashPage() {
           <Line label="Cash expenses" value={pkr(cashExpenses)} />
           <Line label="Expected" value={pkr(expected)} />
           <Line label="Counted" value={pkr(counted)} />
-          <p className={`mt-4 font-display text-4xl ${variance === 0 ? 'text-emerald-300' : 'text-orange-300'}`}>
+          <p className={`mt-3 font-display text-2xl ${variance === 0 ? 'text-emerald-300' : 'text-orange-300'}`}>
             {variance === 0 ? 'Balanced' : `${variance > 0 ? 'Over' : 'Short'} ${pkr(Math.abs(variance))}`}
           </p>
           <button

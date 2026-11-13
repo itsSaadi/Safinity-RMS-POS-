@@ -22,7 +22,7 @@ export default function OrderDrawer({ order, onClose }) {
         <div className="flex items-start justify-between p-5">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted">{typeLabel(order.type)} · {order.source}</p>
-            <h2 className="font-display text-4xl">{order.id}</h2>
+            <h2 className="font-display text-2xl">{order.id}</h2>
             <p className="font-semibold">{order.customer}</p>
           </div>
           <button type="button" aria-label="Close" onClick={onClose} className="grid h-11 w-11 place-items-center rounded-full bg-soft"><X /></button>
@@ -55,7 +55,7 @@ export default function OrderDrawer({ order, onClose }) {
         <div className="space-y-2 border-t border-line p-5">
           <div className="flex items-end justify-between">
             <span className="text-sm text-muted">Total</span>
-            <span className="font-display text-4xl leading-none">{pkr(order.amount)}</span>
+            <span className="font-display text-2xl leading-none">{pkr(order.amount)}</span>
           </div>
           {order.balance > 0 && <p className="text-sm font-bold text-orange-500">Balance {pkr(order.balance)}</p>}
           <div className="flex gap-2">

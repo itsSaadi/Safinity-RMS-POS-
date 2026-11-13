@@ -54,19 +54,19 @@ export default function HomePage() {
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange-500">{greeting()}, {(user?.name || employee.name).split(' ')[0]}</p>
-              <h1 className="font-display text-3xl leading-none md:text-4xl">What are we plating?</h1>
+              <h1 className="font-display text-2xl leading-none">What are we plating?</h1>
             </div>
           </div>
           <SearchBar products={products} query={query} onQuery={setQuery} onPick={openProduct} />
         </div>
 
         {featured && category === 'all' && !query && (
-          <button type="button" onClick={() => openProduct(featured)} className="relative mt-2 block h-48 w-full overflow-hidden rounded-[32px] text-left">
+          <button type="button" onClick={() => openProduct(featured)} className="relative mt-2 block h-28 w-full overflow-hidden rounded-2xl text-left">
             <FoodImage src={featured.image} alt={featured.name} className="h-full w-full" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/25 to-transparent" />
-            <div className="absolute bottom-5 left-5 right-5 text-white">
+            <div className="absolute bottom-3 left-4 right-4 text-white">
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-300">Tonight’s signature</p>
-              <p className="font-display text-4xl leading-none">{featured.name}</p>
+              <p className="font-display text-2xl leading-none">{featured.name}</p>
               <p className="mt-2 text-sm text-white/80">{pkr(featured.price)} · {featured.code}</p>
             </div>
           </button>
@@ -77,8 +77,8 @@ export default function HomePage() {
             <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-muted">Popular this service</p>
             <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
               {popular.map((product) => (
-                <button key={product.id} type="button" onClick={() => openProduct(product)} className="w-40 shrink-0 overflow-hidden rounded-3xl bg-surface text-left shadow-card">
-                  <FoodImage src={product.image} alt={product.name} className="h-24 w-full" />
+                <button key={product.id} type="button" onClick={() => openProduct(product)} className="w-32 shrink-0 overflow-hidden rounded-2xl bg-surface text-left shadow-card">
+                  <FoodImage src={product.image} alt={product.name} className="h-16 w-full" />
                   <div className="p-3">
                     <p className="truncate text-sm font-extrabold">{product.name}</p>
                     <p className="text-xs font-bold text-orange-500">{pkr(product.price)}</p>
@@ -118,7 +118,7 @@ export default function HomePage() {
         )}
       </section>
 
-      <aside className="hidden h-full w-[400px] shrink-0 xl:block">
+      <aside className="hidden h-full w-[320px] shrink-0 xl:block">
         <CartPanel onEdit={editLine} onCheckout={() => setCheckout(true)} />
       </aside>
 

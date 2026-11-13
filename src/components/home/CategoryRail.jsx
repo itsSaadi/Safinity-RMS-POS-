@@ -24,7 +24,7 @@ export default function CategoryRail({ active, onChange }) {
   const { categories, products } = usePos()
   return (
     <>
-      <aside className="hidden h-full w-[118px] shrink-0 flex-col gap-1 overflow-y-auto bg-[#1F2937] py-3 xl:flex">
+      <aside className="hidden h-full w-[92px] shrink-0 flex-col gap-1 overflow-y-auto bg-[#1F2937] py-2 xl:flex">
         {categories.map((category) => (
           <RailButton key={category.id} category={category} products={products} active={active === category.id} onClick={() => onChange(category.id)} />
         ))}
@@ -56,11 +56,11 @@ function RailButton({ category, products, active, onClick }) {
     <button type="button" onClick={onClick} className={`relative mx-2 flex flex-col items-center gap-1 rounded-3xl px-2 py-2.5 ${active ? 'bg-white/10' : 'hover:bg-white/5'}`}>
       {active && <span className="absolute bottom-4 left-0 top-4 w-1 rounded-full bg-orange-500" />}
       {category.id === 'all' ? (
-        <span className="grid h-14 w-14 place-items-center rounded-full bg-orange-500 text-white">
+        <span className="grid h-10 w-10 place-items-center rounded-full bg-orange-500 text-white">
           <LayoutGrid size={20} />
         </span>
       ) : (
-        <FoodImage src={coverFor(category.name)} alt={category.name} className="h-14 w-14 rounded-full" />
+        <FoodImage src={coverFor(category.name)} alt={category.name} className="h-10 w-10 rounded-full" />
       )}
       <span className="text-[12px] font-bold text-white">{category.name}</span>
       <span className="text-[10px] font-semibold text-white/40">{count}</span>
