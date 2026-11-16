@@ -73,6 +73,7 @@ export function PosProvider({ children }) {
   const [recentIds, setRecentIds] = useState([])
   const [toasts, setToasts] = useState([])
   const [closing, setClosing] = useState(null)
+  const [collectingId, setCollectingId] = useState(null)
   const ticketNo = useRef(2395)
 
   useEffect(() => {
@@ -180,7 +181,7 @@ export function PosProvider({ children }) {
   const placeOrder = async (payment) => {
     const totals = summarize(cart)
     const method = payment.method
-    const received = method === 'credit' ? Math.min(Number(payment.received) || 0, totals.total) : totals.total
+    const received = method === 'later' ? 0 : method === 'credit' ? Math.min(Number(payment.received) || 0, totals.total) : totals.total
     const paymentStatus = received <= 0 ? 'unpaid' : received + 0.01 < totals.total ? (method === 'credit' ? 'credit' : 'partial') : 'paid'
     const number = ticketNo.current
     ticketNo.current += 1
@@ -247,14 +248,30 @@ export function PosProvider({ children }) {
     }))
   }
 
-  const markPaid = async (orderId) => {
-    patchOrder(orderId, (order) => ({
-      paymentStatus: 'paid',
-      paymentMethod: order.paymentMethod || 'cash',
-      received: order.amount,
-      balance: 0,
-    }))
-    toast(`${orderId} marked paid`)
+  const startCollect = (orderId) => setCollectingId(orderId)
+  const cancelCollect = () => setCollectingId(null)
+
+  const settleOrder = (orderId, payment) => {
+    const method = payment.method
+    patchOrder(orderId, (order) => {
+      const due = Math.max(0, Number(order.balance) || Number(order.amount) - Number(order.received || 0))
+      const receivedNow = method === 'credit'
+        ? Math.min(Number(payment.received) || 0, due)
+        : method === 'mixed'
+          ? Math.min(due, (Number(payment.cashAmount) || 0) + (Number(payment.cardAmount) || 0))
+          : due
+      const received = (Number(order.received) || 0) + receivedNow
+      const paymentStatus = received <= 0 ? 'unpaid' : received + 0.01 < Number(order.amount) ? (method === 'credit' ? 'credit' : 'partial') : 'paid'
+      return {
+        paymentStatus,
+        paymentMethod: method,
+        cashAmount: (Number(order.cashAmount) || 0) + (method === 'cash' || method === 'credit' ? receivedNow : method === 'mixed' ? Number(payment.cashAmount) || 0 : 0),
+        received,
+        balance: Math.max(0, Number(order.amount) - received),
+      }
+    })
+    setCollectingId(null)
+    toast(`${orderId} payment saved`)
   }
 
   const addExpense = (expense) => {
@@ -297,7 +314,10 @@ export function PosProvider({ children }) {
       history,
       setPrepStatus,
       setItemReady,
-      markPaid,
+      collectingId,
+      startCollect,
+      cancelCollect,
+      settleOrder,
       expenses,
       addExpense,
       riders,
@@ -315,7 +335,7 @@ export function PosProvider({ children }) {
       signIn,
       signOut,
     }),
-    [theme, user, booting, branchLabel, products, categories, tables, waiters, zones, cart, orders, history, expenses, riders, staff, recentIds, toasts, closing],
+    [theme, user, booting, branchLabel, products, categories, tables, waiters, zones, cart, orders, history, expenses, riders, staff, recentIds, toasts, closing, collectingId],
   )
 
   return <PosContext.Provider value={value}>{children}</PosContext.Provider>

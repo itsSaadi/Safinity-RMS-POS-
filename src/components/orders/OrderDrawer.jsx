@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { usePos } from '../../context/PosContext'
 import { formatTime, lineMeta, pkr, prepLabel, typeLabel } from '../../utils/format'
 import Badge from '../ui/Badge'
@@ -7,7 +8,8 @@ import Badge from '../ui/Badge'
 const flow = ['new', 'preparing', 'ready', 'dispatched']
 
 export default function OrderDrawer({ order, onClose }) {
-  const { setPrepStatus, markPaid } = usePos()
+  const { setPrepStatus, startCollect } = usePos()
+  const navigate = useNavigate()
   const next = flow[Math.min(flow.indexOf(order.prepStatus) + 1, flow.length - 1)]
 
   return (
@@ -65,8 +67,16 @@ export default function OrderDrawer({ order, onClose }) {
               </button>
             )}
             {order.paymentStatus !== 'paid' && (
-              <button type="button" onClick={() => markPaid(order.id)} className="h-12 flex-1 rounded-2xl bg-orange-500 font-bold text-white">
-                Mark paid
+              <button
+                type="button"
+                onClick={() => {
+                  startCollect(order.id)
+                  onClose()
+                  navigate('/')
+                }}
+                className="h-12 flex-1 rounded-2xl bg-orange-500 font-bold text-white"
+              >
+                Take payment
               </button>
             )}
           </div>

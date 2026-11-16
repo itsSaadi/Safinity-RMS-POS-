@@ -14,7 +14,7 @@ const links = [
   { to: '/more', label: 'More', icon: LayoutGrid },
 ]
 
-const morePaths = ['/more', '/history', '/riders', '/stats', '/expenses', '/shifts', '/cash']
+const morePaths = ['/more', '/history', '/riders', '/stats', '/expenses', '/shifts', '/cash', '/settings']
 
 function linkActive(path, link) {
   if (link.to === '/more') return morePaths.includes(path)

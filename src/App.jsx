@@ -3,6 +3,8 @@ import { MotionConfig } from 'framer-motion'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { restaurant } from './data/catalog'
 import { PosProvider, usePos } from './context/PosContext'
+import { useLayout } from './layoutPref'
+import LightCounter from './light/LightCounter'
 import AppShell from './components/layout/AppShell'
 import HomePage from './pages/HomePage'
 import OrdersPage from './pages/OrdersPage'
@@ -10,6 +12,8 @@ import KitchenPage from './pages/KitchenPage'
 import MorePage from './pages/MorePage'
 import RidersPage, { ShiftPage } from './pages/PeoplePages'
 import { CashPage, ExpensesPage, StatsPage } from './pages/DeskPages'
+import SettingsPage from './pages/SettingsPage'
+import CollectPayment from './components/orders/CollectPayment'
 
 function ShiftGate() {
   const { user, booting, signIn } = usePos()
@@ -40,7 +44,7 @@ function ShiftGate() {
     return (
       <Routes>
           <Route element={<AppShell />}>
-            <Route index element={<HomePage />} />
+            <Route index element={<CounterPage />} />
             <Route path="orders" element={<OrdersPage />} />
             <Route path="kitchen" element={<KitchenPage />} />
             <Route path="more" element={<MorePage />} />
@@ -50,6 +54,7 @@ function ShiftGate() {
             <Route path="expenses" element={<ExpensesPage />} />
             <Route path="shifts" element={<ShiftPage />} />
             <Route path="cash" element={<CashPage />} />
+            <Route path="settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
@@ -78,6 +83,16 @@ function ShiftGate() {
         </form>
       </div>
     </div>
+  )
+}
+
+function CounterPage() {
+  const layout = useLayout()
+  return (
+    <>
+      {layout === 'light' ? <LightCounter /> : <HomePage />}
+      <CollectPayment />
+    </>
   )
 }
 

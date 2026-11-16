@@ -23,8 +23,9 @@ export default {
         65: '0.65',
       },
       fontFamily: {
-        sans: ['Manrope', 'Segoe UI', 'sans-serif'],
-        display: ['Fraunces', 'Georgia', 'serif'],
+        sans: ['Montserrat', 'Segoe UI', 'system-ui', 'sans-serif'],
+        display: ['Montserrat', 'Segoe UI', 'system-ui', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'ui-monospace', 'monospace'],
       },
       boxShadow: {
         card: '0 18px 50px -28px rgb(17 24 39 / 0.45)',

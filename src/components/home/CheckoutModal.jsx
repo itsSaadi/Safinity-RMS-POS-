@@ -166,7 +166,7 @@ export default function CheckoutModal({ onClose }) {
           </div>
           {error && <p className="mt-3 text-sm font-bold text-red-500">{error}</p>}
           <button type="button" onClick={charge} className="mt-4 h-14 rounded-2xl bg-ink text-base font-extrabold text-white">
-            Take payment · {pkr(totals.total)}
+            {method === 'later' ? `Pay later · ${pkr(totals.total)} due` : `Take payment · ${pkr(totals.total)}`}
           </button>
         </div>
       </div>

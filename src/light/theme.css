@@ -1,0 +1,45 @@
+.pos-light {
+  --pos-bg-from: #e8f0fe;
+  --pos-bg-to: #f6f9ff;
+  --pos-surface: #ffffff;
+  --pos-border: #d9e4f5;
+  --pos-accent: #3b82f6;
+  --pos-accent-hover: #2563eb;
+  --pos-dark: #1e293b;
+  --pos-success: #15803d;
+  --pos-danger: #dc2626;
+  --pos-text: #0f172a;
+  --pos-muted: #64748b;
+  --pos-radius: 12px;
+  --pos-shadow: 0 2px 10px rgba(30, 64, 175, 0.08);
+  height: 100%;
+  color: var(--pos-text);
+  font-family: var(--font);
+  font-size: 14px;
+  background: linear-gradient(180deg, var(--pos-bg-from), var(--pos-bg-to));
+}
+
+.pos-light button,
+.pos-light input,
+.pos-light select,
+.pos-light textarea {
+  font-family: inherit;
+}
+
+.pos-fade {
+  animation: pos-fade 160ms ease;
+}
+
+.pos-pop {
+  animation: pos-pop 180ms ease;
+}
+
+@keyframes pos-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pos-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
