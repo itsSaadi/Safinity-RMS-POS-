@@ -1,13 +1,52 @@
+import { Banknote, Clock3, Save, X } from 'lucide-react'
 import { money } from './money'
 
-export default function TotalBar({ total, onPay }) {
+export default function TotalBar({ total, onPayNow, onPayLater, editing, onSaveEdit, onCancelEdit }) {
   return (
-    <button type="button" onClick={onPay} className="mx-3 mb-3 flex h-[72px] items-center justify-between rounded-[var(--pos-radius)] bg-[var(--pos-success)] px-4 text-left text-white active:brightness-95">
-      <span>
-        <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-white/80">Total</span>
-        <span className="text-sm font-medium">Take payment</span>
-      </span>
-      <span className="text-[28px] font-bold leading-none tabular-nums">{money(total)}</span>
-    </button>
+    <div className="mx-3 mb-3 space-y-2">
+      <div className="flex items-end justify-between px-1">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--pos-muted)]">Total</span>
+        <span className="text-[26px] font-bold leading-none tabular-nums text-[var(--pos-text)]">{money(total)}</span>
+      </div>
+      {editing ? (
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onCancelEdit}
+            className="inline-flex h-[56px] items-center justify-center gap-2 rounded-[var(--pos-radius)] border border-[var(--pos-border)] bg-white px-3 text-sm font-semibold text-[var(--pos-text)] active:bg-[#eef3fb]"
+          >
+            <X size={18} className="shrink-0 text-[var(--pos-muted)]" />
+            Cancel edit
+          </button>
+          <button
+            type="button"
+            onClick={onSaveEdit}
+            className="inline-flex h-[56px] items-center justify-center gap-2 rounded-[var(--pos-radius)] bg-[var(--pos-accent,#2563eb)] px-3 text-sm font-semibold text-white active:brightness-95"
+          >
+            <Save size={18} className="shrink-0" />
+            Save changes
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onPayLater}
+            className="inline-flex h-[56px] items-center justify-center gap-2 rounded-[var(--pos-radius)] border border-[var(--pos-border)] bg-white px-3 text-sm font-semibold text-[var(--pos-text)] active:bg-[#eef3fb]"
+          >
+            <Clock3 size={18} className="shrink-0 text-[var(--pos-muted)]" />
+            Pay later
+          </button>
+          <button
+            type="button"
+            onClick={onPayNow}
+            className="inline-flex h-[56px] items-center justify-center gap-2 rounded-[var(--pos-radius)] bg-[var(--pos-success)] px-3 text-sm font-semibold text-white active:brightness-95"
+          >
+            <Banknote size={18} className="shrink-0" />
+            Pay now
+          </button>
+        </div>
+      )}
+    </div>
   )
 }

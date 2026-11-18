@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { BarChart3, Bike, Clock3, Landmark, Receipt, Settings, Wallet } from 'lucide-react'
 import { usePos } from '../context/PosContext'
-import { pkr } from '../utils/format'
+import { orderLabel, pkr } from '../utils/format'
 
 const tiles = [
   { to: '/history', title: 'History', copy: 'Earlier tickets', icon: Receipt },
@@ -26,7 +26,7 @@ export default function MorePage() {
         </div>
         <p className="text-right text-xs text-muted">
           {orders.length} open
-          <span className="mt-0.5 block">{latest ? `${latest.id} · ${pkr(latest.amount)}` : 'No ticket yet'}</span>
+          <span className="mt-0.5 block">{latest ? `${orderLabel(latest)} · ${pkr(latest.amount)}` : 'No ticket yet'}</span>
         </p>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">

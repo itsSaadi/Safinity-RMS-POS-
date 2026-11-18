@@ -1,16 +1,19 @@
 import { useMemo, useState } from 'react'
 import { Banknote, Check, CreditCard, Smartphone, Wallet, X } from 'lucide-react'
-import { PAYMENT_METHODS } from '../../data/catalog'
 import { summarize, usePos } from '../../context/PosContext'
-import { lineMeta, pkr } from '../../utils/format'
+import { lineMeta, orderLabel, pkr } from '../../utils/format'
 import Overlay from '../ui/Overlay'
 
 const quickCash = [1000, 2000, 5000]
 
 export default function CheckoutModal({ onClose }) {
-  const { cart, placeOrder } = usePos()
-  const totals = summarize(cart)
-  const [method, setMethod] = useState('cash')
+  const { cart, placeOrder, paymentTypes, updateCart, taxInclusive, orderChannel } = usePos()
+  const selectedPayment = paymentTypes.find((item) => item.id === cart.paymentTypeId)
+    || paymentTypes.find((item) => item.kind === (paymentTypes[0]?.kind))
+    || paymentTypes[0]
+  const totals = summarize(cart, selectedPayment?.tax, taxInclusive)
+  const [method, setMethod] = useState(() => paymentTypes.find((item) => item.id === cart.paymentTypeId)?.kind || paymentTypes[0]?.kind || 'cash')
+  const [paymentTypeId, setPaymentTypeId] = useState(() => selectedPayment?.id || '')
   const [received, setReceived] = useState(String(totals.total))
   const [cashPart, setCashPart] = useState('')
   const [cardPart, setCardPart] = useState('')
@@ -19,6 +22,7 @@ export default function CheckoutModal({ onClose }) {
   const [creditName, setCreditName] = useState(cart.customer)
   const [error, setError] = useState('')
   const [done, setDone] = useState(null)
+  const [busy, setBusy] = useState(false)
 
   const receivedNum = Number(received) || 0
   const cashNum = Number(cashPart) || 0
@@ -32,6 +36,15 @@ export default function CheckoutModal({ onClose }) {
   }, [method, receivedNum, totals.total])
 
   const charge = async () => {
+    if (busy) return
+    if (orderChannel === 'dine-in' && !cart.tableId) {
+      setError('Choose a table')
+      return
+    }
+    if (['delivery', 'foodpanda', 'bite'].includes(orderChannel) && !String(cart.address || '').trim()) {
+      setError('Add a delivery address')
+      return
+    }
     if (method === 'cash' && receivedNum < totals.total) {
       setError('Amount received is less than the total')
       return
@@ -48,19 +61,28 @@ export default function CheckoutModal({ onClose }) {
       setError('Add the account name for credit')
       return
     }
+    const activePayment = paymentTypes.find((item) => item.id === paymentTypeId)
+      || paymentTypes.find((item) => item.kind === method)
+      || selectedPayment
     const payment = {
       method,
+      paymentTypeId: activePayment?.id || paymentTypeId,
+      taxPercent: totals.taxPercent,
       status: method === 'credit' ? (receivedNum > 0 && receivedNum < totals.total ? 'partial' : receivedNum >= totals.total ? 'paid' : 'credit') : 'paid',
       received: method === 'mixed' ? totals.total : method === 'cash' || method === 'credit' ? receivedNum : totals.total,
+      change,
       cashAmount: method === 'cash' ? totals.total : method === 'mixed' ? cashNum : method === 'credit' ? Math.min(receivedNum, totals.total) : 0,
       cardAmount: method === 'card' ? totals.total : method === 'mixed' ? cardNum : 0,
       balance: method === 'credit' ? Math.max(0, totals.total - receivedNum) : 0,
     }
+    setBusy(true)
     try {
       const order = await placeOrder({ ...payment, wallet, txn })
       setDone({ ...order, change, wallet, txn, creditName })
     } catch (error) {
       setError(error.message || 'The order did not reach Orra')
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -72,7 +94,7 @@ export default function CheckoutModal({ onClose }) {
             <Check size={28} />
           </div>
           <h2 className="mt-3 text-center font-display text-2xl">Ticket sent</h2>
-          <p className="text-center text-sm text-muted">{done.id} is on the kitchen pass</p>
+          <p className="text-center text-sm text-muted">{orderLabel(done)} is on the kitchen pass</p>
           <div className="mt-5 space-y-2 rounded-3xl bg-soft p-4 text-sm">
             <div className="flex justify-between"><span>Total</span><strong>{pkr(done.amount)}</strong></div>
             <div className="flex justify-between"><span>Method</span><strong className="capitalize">{done.paymentMethod}</strong></div>
@@ -107,7 +129,7 @@ export default function CheckoutModal({ onClose }) {
           <div className="mt-4 space-y-1 border-t border-line pt-3 text-sm">
             <Mini label="Subtotal" value={pkr(totals.subtotal)} />
             <Mini label="Discount" value={pkr(totals.discount)} />
-            <Mini label="Tax" value={pkr(totals.tax)} />
+            <Mini label={totals.taxInclusive ? `Tax incl. (${totals.taxPercent}%)` : `Tax (${totals.taxPercent}%)`} value={pkr(totals.tax)} />
             <Mini label="Delivery" value={pkr(totals.delivery)} />
           </div>
           <p className="mt-3 font-display text-3xl leading-none text-orange-500">{pkr(totals.total)}</p>
@@ -118,14 +140,19 @@ export default function CheckoutModal({ onClose }) {
             <button type="button" aria-label="Close" onClick={onClose} className="grid h-11 w-11 place-items-center rounded-full bg-soft"><X /></button>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {PAYMENT_METHODS.map((item) => (
+            {paymentTypes.map((item) => (
               <button
                 key={item.id}
                 type="button"
-                onClick={() => { setMethod(item.id); setError('') }}
-                className={`flex h-20 flex-col items-start justify-between rounded-3xl border px-3 py-3 text-left ${method === item.id ? 'border-orange-500 bg-orange-500 text-white' : 'border-line'}`}
+                onClick={() => {
+                  setMethod(item.kind)
+                  setPaymentTypeId(item.id)
+                  updateCart({ paymentTypeId: item.id })
+                  setError('')
+                }}
+                className={`flex h-20 flex-col items-start justify-between rounded-3xl border px-3 py-3 text-left ${paymentTypeId === item.id || method === item.kind ? 'border-orange-500 bg-orange-500 text-white' : 'border-line'}`}
               >
-                <PayIcon id={item.id} />
+                <PayIcon id={item.kind} />
                 <span className="text-sm font-extrabold">{item.label}</span>
               </button>
             ))}
@@ -165,7 +192,7 @@ export default function CheckoutModal({ onClose }) {
             <Stat label="Change" value={pkr(change)} />
           </div>
           {error && <p className="mt-3 text-sm font-bold text-red-500">{error}</p>}
-          <button type="button" onClick={charge} className="mt-4 h-14 rounded-2xl bg-ink text-base font-extrabold text-white">
+          <button type="button" onClick={charge} disabled={busy} className="mt-4 h-14 rounded-2xl bg-ink text-base font-extrabold text-white disabled:opacity-60">
             {method === 'later' ? `Pay later · ${pkr(totals.total)} due` : `Take payment · ${pkr(totals.total)}`}
           </button>
         </div>

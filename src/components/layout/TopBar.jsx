@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Bell, ChefHat, ClipboardList, Home, LayoutGrid, LogOut, MapPin, Maximize2, Minimize2, Moon, Sun, Wifi } from 'lucide-react'
+import { Bell, ChefHat, ClipboardList, Home, LayoutGrid, LogOut, MapPin, Maximize2, Minimize2, Moon, RefreshCw, Sun, Wifi } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { employee, restaurant } from '../../data/catalog'
 import { notifications } from '../../data/seed'
@@ -23,7 +23,7 @@ function linkActive(path, link) {
 }
 
 export default function TopBar() {
-  const { theme, setTheme, signOut, user, branchLabel } = usePos()
+  const { theme, setTheme, signOut, user, branchLabel, refreshDesk, refreshing } = usePos()
   const person = user?.name || employee.name
   const role = user?.role_name || employee.role
   const initials = person.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()
@@ -92,6 +92,9 @@ export default function TopBar() {
           <Wifi size={15} />
           Ready
         </span>
+        <IconButton label="Refresh menu" onClick={() => refreshDesk()} disabled={refreshing}>
+          <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
+        </IconButton>
         <IconButton label="Notifications" onClick={() => setOpen(open === 'bell' ? null : 'bell')}>
           <Bell size={18} />
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-orange-500" />
@@ -134,13 +137,13 @@ export default function TopBar() {
               <div className="mt-4 rounded-2xl bg-soft px-4 py-3 text-sm">
                 <p className="font-semibold">{employee.shift} shift</p>
                 <p className="text-muted">{employee.hours}</p>
-                <p className="mt-1 text-muted">{restaurant.branch}, {restaurant.city}</p>
+                <p className="mt-1 text-muted">{branchLabel || restaurant.branch}, {restaurant.city}</p>
               </div>
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   setOpen(null)
-                  signOut()
+                  await signOut()
                 }}
                 className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#111827] text-sm font-extrabold text-white"
               >
@@ -155,9 +158,9 @@ export default function TopBar() {
   )
 }
 
-function IconButton({ children, label, onClick }) {
+function IconButton({ children, label, onClick, disabled }) {
   return (
-    <button type="button" aria-label={label} onClick={onClick} className="relative grid h-9 w-9 place-items-center rounded-full text-white/85 hover:bg-white/10">
+    <button type="button" aria-label={label} onClick={onClick} disabled={disabled} className="relative grid h-9 w-9 place-items-center rounded-full text-white/85 hover:bg-white/10 disabled:opacity-50">
       {children}
     </button>
   )

@@ -5,7 +5,7 @@ const EVENT = 'orra-layout'
 
 export function readLayout() {
   try {
-    return localStorage.getItem(KEY) === 'light' ? 'light' : 'classic'
+    return sessionStorage.getItem(KEY) === 'light' ? 'light' : 'classic'
   } catch {
     return 'classic'
   }
@@ -13,7 +13,7 @@ export function readLayout() {
 
 export function writeLayout(layout) {
   const next = layout === 'light' ? 'light' : 'classic'
-  localStorage.setItem(KEY, next)
+  sessionStorage.setItem(KEY, next)
   window.dispatchEvent(new Event(EVENT))
 }
 

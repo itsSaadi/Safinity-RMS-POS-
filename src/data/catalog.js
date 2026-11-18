@@ -25,11 +25,11 @@ export const categories = [
 ]
 
 export const ORDER_TYPES = [
-  { id: 'dine-in', label: 'Dine-in' },
-  { id: 'takeaway', label: 'Takeaway' },
+  { id: 'dine-in', label: 'Dine In' },
+  { id: 'takeaway', label: 'Take Away' },
   { id: 'delivery', label: 'Delivery' },
   { id: 'foodpanda', label: 'Foodpanda' },
-  { id: 'bite', label: 'Bite' },
+  { id: 'bite', label: 'Bites' },
 ]
 
 export const PAYMENT_METHODS = [

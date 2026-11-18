@@ -9,7 +9,7 @@ export default function CategoryChips({ active, onChange }) {
     <div className="no-scrollbar flex gap-2 overflow-x-auto py-1">
       {categories.map((category) => {
         const selected = active === category.id
-        const cover = categoryCovers[category.id]
+        const cover = category.image || categoryCovers[category.id]
         return (
           <button
             key={category.id}

@@ -14,8 +14,12 @@ export default function CustomizeModal({ product, line, onClose, onSave }) {
   const [error, setError] = useState('')
 
   const variation = product.variations.find((item) => item.id === variationId) || null
+  const groups = useMemo(
+    () => [...(product.choiceGroups || []), ...((variation?.choiceGroups) || [])],
+    [product.choiceGroups, variation],
+  )
   const selectedAddons = product.addons.filter((item) => addonIds.includes(item.id))
-  const selectedChoices = product.choiceGroups
+  const selectedChoices = groups
     .map((group) => {
       const option = group.options.find((item) => item.id === choices[group.id])
       return option ? { group: group.name, ...option } : null
@@ -29,7 +33,7 @@ export default function CustomizeModal({ product, line, onClose, onSave }) {
   }, [product, variation, selectedAddons, selectedChoices])
 
   const save = () => {
-    const missing = product.choiceGroups.find((group) => group.required && !choices[group.id])
+    const missing = groups.find((group) => group.required && !choices[group.id])
     if (missing) {
       setError(`Choose ${missing.name}`)
       return
@@ -76,7 +80,7 @@ export default function CustomizeModal({ product, line, onClose, onSave }) {
                 </div>
               </OptionBlock>
             )}
-            {product.choiceGroups.map((group) => (
+            {groups.map((group) => (
               <OptionBlock key={group.id} title={group.name} hint={group.required ? 'Required' : 'Optional'}>
                 <div className="grid grid-cols-2 gap-2">
                   {group.options.map((option) => (

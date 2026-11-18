@@ -1,16 +1,35 @@
-import { AnimatePresence, motion } from 'framer-motion'
-import { X } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Pencil, X } from 'lucide-react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePos } from '../../context/PosContext'
-import { formatTime, lineMeta, pkr, prepLabel, typeLabel } from '../../utils/format'
+import { formatTime, lineMeta, orderLabel, pkr, prepLabel, typeLabel } from '../../utils/format'
 import Badge from '../ui/Badge'
 
 const flow = ['new', 'preparing', 'ready', 'dispatched']
 
-export default function OrderDrawer({ order, onClose }) {
-  const { setPrepStatus, startCollect } = usePos()
+export default function OrderDrawer({ order, onClose, readOnly = false }) {
+  const { setPrepStatus, startCollect, cancelOrder, can, startEditOrder, canEditOrder } = usePos()
   const navigate = useNavigate()
+  const [busy, setBusy] = useState(false)
   const next = flow[Math.min(flow.indexOf(order.prepStatus) + 1, flow.length - 1)]
+  const canCancel = !readOnly && can('order:cancel') && order.apiStatus !== 'CANCELLED' && order.prepStatus !== 'cancelled'
+  const showEdit = !readOnly && canEditOrder(order)
+
+  const onCancel = async () => {
+    if (busy) return
+    const reason = window.prompt('Cancel reason (optional)')
+    if (reason === null) return
+    setBusy(true)
+    try {
+      await cancelOrder(order.id, reason)
+      onClose()
+    } catch {
+      // toast handled in context
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50">
@@ -24,8 +43,8 @@ export default function OrderDrawer({ order, onClose }) {
         <div className="flex items-start justify-between p-5">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted">{typeLabel(order.type)} · {order.source}</p>
-            <h2 className="font-display text-2xl">{order.id}</h2>
-            <p className="font-semibold">{order.customer}</p>
+            <h2 className="font-display text-2xl">{orderLabel(order)}</h2>
+            <p className="font-semibold">{order.customer || 'Walk-in'}</p>
           </div>
           <button type="button" aria-label="Close" onClick={onClose} className="grid h-11 w-11 place-items-center rounded-full bg-soft"><X /></button>
         </div>
@@ -50,7 +69,7 @@ export default function OrderDrawer({ order, onClose }) {
               </div>
               {lineMeta(item) && <p className="text-xs text-muted">{lineMeta(item)}</p>}
               {item.instructions && <p className="text-xs italic text-orange-600">“{item.instructions}”</p>}
-              <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-muted">{item.station}</p>
+              {item.station && <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-muted">{item.station}</p>}
             </div>
           ))}
         </div>
@@ -60,26 +79,47 @@ export default function OrderDrawer({ order, onClose }) {
             <span className="font-display text-2xl leading-none">{pkr(order.amount)}</span>
           </div>
           {order.balance > 0 && <p className="text-sm font-bold text-orange-500">Balance {pkr(order.balance)}</p>}
-          <div className="flex gap-2">
-            {order.prepStatus !== 'dispatched' && (
-              <button type="button" onClick={() => setPrepStatus(order.id, next)} className="h-12 flex-1 rounded-2xl bg-ink font-bold text-white">
-                Move to {prepLabel(next)}
-              </button>
-            )}
-            {order.paymentStatus !== 'paid' && (
-              <button
-                type="button"
-                onClick={() => {
-                  startCollect(order.id)
-                  onClose()
-                  navigate('/')
-                }}
-                className="h-12 flex-1 rounded-2xl bg-orange-500 font-bold text-white"
-              >
-                Take payment
-              </button>
-            )}
-          </div>
+          {!readOnly && (
+            <div className="flex flex-wrap gap-2">
+              {showEdit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (startEditOrder(order)) {
+                      onClose()
+                      navigate('/')
+                    }
+                  }}
+                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-600 font-bold text-white"
+                >
+                  <Pencil size={16} /> Edit order
+                </button>
+              )}
+              {order.prepStatus !== 'dispatched' && order.prepStatus !== 'cancelled' && (
+                <button type="button" onClick={() => setPrepStatus(order.id, next)} className="h-12 flex-1 rounded-2xl bg-ink font-bold text-white">
+                  Move to {prepLabel(next)}
+                </button>
+              )}
+              {order.paymentStatus !== 'paid' && order.prepStatus !== 'cancelled' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    startCollect(order.id)
+                    onClose()
+                    navigate('/')
+                  }}
+                  className="h-12 flex-1 rounded-2xl bg-orange-500 font-bold text-white"
+                >
+                  Take payment
+                </button>
+              )}
+              {canCancel && (
+                <button type="button" disabled={busy} onClick={onCancel} className="h-12 w-full rounded-2xl bg-red-500/10 font-bold text-red-600 disabled:opacity-60">
+                  Cancel order
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </motion.aside>
     </div>

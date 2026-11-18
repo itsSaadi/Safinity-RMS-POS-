@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Bell, Clock3, History, Maximize2, Minimize2, MoreHorizontal, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Bell, Clock3, History, Maximize2, Minimize2, MoreHorizontal, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { usePos } from '../context/PosContext'
 
 export default function TopBar({ onBack, onNew, onHistory, onPending, onClear, onShift, onBell, onMenu }) {
-  const { user, staff } = usePos()
+  const { user, staff, refreshDesk, refreshing } = usePos()
   const [full, setFull] = useState(false)
   const shiftOpen = staff.some((person) => person.status === 'on')
 
@@ -30,6 +30,16 @@ export default function TopBar({ onBack, onNew, onHistory, onPending, onClear, o
         </button>
       </div>
       <div className="flex items-center gap-2 overflow-x-auto">
+        <button
+          type="button"
+          aria-label="Refresh menu"
+          disabled={refreshing}
+          onClick={() => refreshDesk()}
+          className="inline-flex h-12 shrink-0 items-center gap-2 rounded-full border border-[var(--pos-border)] bg-white/80 px-4 text-sm font-medium active:bg-white disabled:opacity-60"
+        >
+          <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
+          Refresh
+        </button>
         <Pill icon={History} label="History" onClick={onHistory} />
         <Pill icon={Clock3} label="Pending" onClick={onPending} />
         <Pill icon={Trash2} label="Clear" onClick={onClear} />

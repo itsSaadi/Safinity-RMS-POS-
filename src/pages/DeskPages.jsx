@@ -4,14 +4,15 @@ import { pkr } from '../utils/format'
 import DeskHeader from '../components/layout/DeskHeader'
 
 export function StatsPage() {
-  const { orders } = usePos()
+  const { orders, orderTypes } = usePos()
   const stats = useMemo(() => {
     const paid = orders.filter((order) => order.paymentStatus === 'paid' || order.paymentStatus === 'partial')
     const revenue = paid.reduce((sum, order) => sum + (order.paymentStatus === 'partial' ? order.received : order.amount), 0)
     const avg = orders.length ? Math.round(orders.reduce((sum, order) => sum + order.amount, 0) / orders.length) : 0
-    const types = ['dine-in', 'takeaway', 'delivery', 'foodpanda', 'bite'].map((type) => ({
-      type,
-      count: orders.filter((order) => order.type === type).length,
+    const types = orderTypes.map((item) => ({
+      type: item.code,
+      label: item.label,
+      count: orders.filter((order) => order.type === item.code || order.type === item.channel).length,
     }))
     const max = Math.max(1, ...types.map((item) => item.count))
     const dishes = {}
@@ -22,7 +23,7 @@ export function StatsPage() {
     })
     const top = Object.entries(dishes).sort((a, b) => b[1] - a[1]).slice(0, 5)
     return { revenue, avg, types, max, top, open: orders.filter((order) => order.prepStatus !== 'dispatched').length }
-  }, [orders])
+  }, [orders, orderTypes])
 
   return (
     <div className="h-full overflow-y-auto px-4 py-5 pb-24 md:px-8">
@@ -38,8 +39,8 @@ export function StatsPage() {
           <div className="mt-4 space-y-3">
             {stats.types.map((item) => (
               <div key={item.type}>
-                <div className="mb-1 flex justify-between text-sm font-semibold capitalize">
-                  <span>{item.type}</span>
+                <div className="mb-1 flex justify-between text-sm font-semibold">
+                  <span>{item.label || item.type}</span>
                   <span>{item.count}</span>
                 </div>
                 <div className="h-2 rounded-full bg-soft">

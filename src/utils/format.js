@@ -47,15 +47,45 @@ export function lineMeta(line) {
   return [line.variation, ...(line.choices || []), ...(line.addons || [])].filter(Boolean).join(' · ')
 }
 
+/** Human ticket label — never a Mongo ObjectId / UUID. */
+export function orderLabel(order) {
+  const number = String(order?.orderNumber || '').trim()
+  if (number && !/^[a-f\d]{24}$/i.test(number) && !/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(number)) {
+    return number
+  }
+  if (order?.createdAt) {
+    const stamp = new Date(order.createdAt)
+    const hh = String(stamp.getHours()).padStart(2, '0')
+    const mm = String(stamp.getMinutes()).padStart(2, '0')
+    return `Ticket ${hh}${mm}`
+  }
+  return 'Ticket'
+}
+
+export function itemsLabel(order, limit = 3) {
+  const items = order?.items || []
+  if (!items.length) return 'No items'
+  const shown = items.slice(0, limit).map((item) => `${item.qty}× ${item.name}`).join(', ')
+  const extra = items.length - limit
+  return extra > 0 ? `${shown} +${extra} more` : shown
+}
+
 export function typeLabel(type) {
   const labels = {
-    'dine-in': 'Dine-in',
-    takeaway: 'Takeaway',
+    DINE_IN: 'Dine In',
+    TAKE_AWAY: 'Take Away',
+    DELIVERY: 'Delivery',
+    FOOD_PANDA: 'Foodpanda',
+    FOODPANDA: 'Foodpanda',
+    BITES: 'Bites',
+    BITE: 'Bites',
+    'dine-in': 'Dine In',
+    takeaway: 'Take Away',
     delivery: 'Delivery',
     foodpanda: 'Foodpanda',
-    bite: 'Bite',
+    bite: 'Bites',
   }
-  return labels[type] || type
+  return labels[type] || labels[String(type || '').toUpperCase().replace(/[\s-]+/g, '_')] || type
 }
 
 export function prepLabel(status) {
@@ -63,7 +93,14 @@ export function prepLabel(status) {
     new: 'New',
     preparing: 'Preparing',
     ready: 'Ready',
-    dispatched: 'Served',
+    dispatched: 'Dispatched',
+    cancelled: 'Cancelled',
+    PENDING: 'New',
+    RECEIVED: 'New',
+    PREPARING: 'Preparing',
+    READY: 'Ready',
+    DISPATCHED: 'Dispatched',
+    CANCELLED: 'Cancelled',
   }
   return labels[status] || status
 }

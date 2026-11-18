@@ -1,10 +1,8 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
-import { PAYMENT_METHODS } from '../../data/catalog'
 import { usePos } from '../../context/PosContext'
-import { lineMeta, pkr, typeLabel } from '../../utils/format'
+import { lineMeta, orderLabel, pkr, typeLabel } from '../../utils/format'
 
-const methods = PAYMENT_METHODS.filter((item) => item.id !== 'later')
 const quickCash = [1000, 2000, 5000]
 
 export default function CollectPayment() {
@@ -14,10 +12,12 @@ export default function CollectPayment() {
 }
 
 function CollectForm({ orderId }) {
-  const { orders, history, cancelCollect, settleOrder } = usePos()
+  const { orders, history, cancelCollect, settleOrder, paymentTypes } = usePos()
+  const methods = paymentTypes.filter((item) => item.kind !== 'later')
   const order = orders.find((item) => item.id === orderId) || history.find((item) => item.id === orderId)
   const due = order ? Math.max(0, Number(order.balance) || Number(order.amount) - Number(order.received || 0)) : 0
-  const [method, setMethod] = useState('cash')
+  const [method, setMethod] = useState(methods[0]?.kind || 'cash')
+  const [paymentTypeId, setPaymentTypeId] = useState(methods[0]?.id || '')
   const [received, setReceived] = useState(String(due))
   const [cashPart, setCashPart] = useState('')
   const [cardPart, setCardPart] = useState('')
@@ -25,6 +25,7 @@ function CollectForm({ orderId }) {
   const [txn, setTxn] = useState('')
   const [creditName, setCreditName] = useState(order?.customer || '')
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
 
   if (!order) return null
 
@@ -33,7 +34,8 @@ function CollectForm({ orderId }) {
   const cardNum = Number(cardPart) || 0
   const change = method === 'cash' ? Math.max(0, receivedNum - due) : 0
 
-  const charge = () => {
+  const charge = async () => {
+    if (busy) return
     if (method === 'cash' && receivedNum < due) {
       setError('Amount received is less than the balance')
       return
@@ -50,22 +52,33 @@ function CollectForm({ orderId }) {
       setError('Add the account name for credit')
       return
     }
-    settleOrder(order.id, {
-      method,
-      received: method === 'credit' ? receivedNum : due,
-      cashAmount: method === 'cash' ? due : method === 'mixed' ? cashNum : method === 'credit' ? Math.min(receivedNum, due) : 0,
-      cardAmount: method === 'card' ? due : method === 'mixed' ? cardNum : 0,
-    })
+    setBusy(true)
+    try {
+      await settleOrder(order.id, {
+        method,
+        paymentTypeId,
+        received: method === 'credit' ? receivedNum : method === 'cash' ? receivedNum : due,
+        change: method === 'cash' ? change : 0,
+        cashAmount: method === 'cash' ? due : method === 'mixed' ? cashNum : method === 'credit' ? Math.min(receivedNum, due) : 0,
+        cardAmount: method === 'card' ? due : method === 'mixed' ? cardNum : 0,
+        txn,
+        notes: [wallet, txn].filter(Boolean).join(' · ') || undefined,
+      })
+    } catch (err) {
+      setError(err.message || 'Payment failed')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
       <button type="button" aria-label="Close" className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]" onClick={cancelCollect} />
-      <div role="dialog" aria-modal="true" aria-label={`Pay ${order.id}`} className="relative flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-surface text-ink shadow-dock">
+      <div role="dialog" aria-modal="true" aria-label={`Pay ${orderLabel(order)}`} className="relative flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-surface text-ink shadow-dock">
         <div className="flex items-start justify-between gap-3 px-5 pb-2 pt-4">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange-500">{typeLabel(order.type)} · {order.customer}</p>
-            <h2 className="text-xl font-semibold">{order.id}</h2>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange-500">{typeLabel(order.type)} · {order.customer || 'Walk-in'}</p>
+            <h2 className="text-xl font-semibold">{orderLabel(order)}</h2>
             <p className="text-sm text-muted">{order.table || 'No table'} · due {pkr(due)}</p>
           </div>
           <button type="button" aria-label="Close payment" onClick={cancelCollect} className="grid h-11 w-11 place-items-center rounded-full bg-soft">
@@ -91,8 +104,12 @@ function CollectForm({ orderId }) {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => { setMethod(item.id); setError('') }}
-                  className={`h-12 rounded-2xl text-sm font-bold ${method === item.id ? 'bg-ink text-white' : 'bg-soft'}`}
+                  onClick={() => {
+                    setMethod(item.kind)
+                    setPaymentTypeId(item.id)
+                    setError('')
+                  }}
+                  className={`h-12 rounded-2xl text-sm font-bold ${method === item.kind ? 'bg-ink text-white' : 'bg-soft'}`}
                 >
                   {item.label}
                 </button>
@@ -131,7 +148,7 @@ function CollectForm({ orderId }) {
         </div>
         <div className="flex justify-end gap-2 border-t border-line px-5 py-4">
           <button type="button" onClick={cancelCollect} className="h-12 rounded-2xl bg-soft px-4 text-sm font-bold">Cancel</button>
-          <button type="button" onClick={charge} className="h-12 rounded-2xl bg-orange-500 px-4 text-sm font-bold text-white">Take {pkr(due)}</button>
+          <button type="button" onClick={charge} disabled={busy} className="h-12 rounded-2xl bg-orange-500 px-4 text-sm font-bold text-white disabled:opacity-60">Take {pkr(due)}</button>
         </div>
       </div>
     </div>

@@ -13,7 +13,7 @@
     rel="stylesheet" />
   <script>
     try {
-      if (localStorage.getItem('orra-theme') === 'dark') {
+      if (sessionStorage.getItem('orra-theme') === 'dark') {
         document.documentElement.classList.add('dark')
       }
     } catch (e) { }

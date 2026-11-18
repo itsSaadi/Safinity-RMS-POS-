@@ -13,13 +13,14 @@ import CheckoutModal from '../components/home/CheckoutModal'
 import FoodImage from '../components/ui/FoodImage'
 
 export default function HomePage() {
-  const { cart, addLine, updateLine, recentIds, products, productById, user } = usePos()
+  const { cart, addLine, updateLine, recentIds, products, productById, user, paymentTypes, taxInclusive } = usePos()
   const [category, setCategory] = useState('all')
   const [query, setQuery] = useState('')
   const [editor, setEditor] = useState(null)
   const [checkout, setCheckout] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
-  const totals = summarize(cart)
+  const selectedPayment = paymentTypes.find((item) => item.id === cart.paymentTypeId)
+  const totals = summarize(cart, selectedPayment?.tax, taxInclusive)
   const featured = products.find((product) => product.featured)
 
   const visible = useMemo(() => {

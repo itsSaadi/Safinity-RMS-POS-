@@ -4,7 +4,10 @@ import { money } from './money'
 
 export default function OrderSummary({ totals, methodLabel, onMethod }) {
   const [open, setOpen] = useState(false)
-  const charges = totals.tax + totals.delivery
+  const charges = totals.taxInclusive ? totals.delivery : totals.tax + totals.delivery
+  const taxLabel = totals.taxPercent != null
+    ? `${totals.taxInclusive ? 'Tax incl.' : 'Tax'} ${totals.taxPercent}%`
+    : (totals.taxInclusive ? 'Tax incl.' : 'Tax')
 
   return (
     <div className="border-t border-[var(--pos-border)] px-4 py-3">
@@ -20,9 +23,11 @@ export default function OrderSummary({ totals, methodLabel, onMethod }) {
       {open && (
         <div className="mt-2 space-y-1 text-xs text-[var(--pos-muted)]">
           <Row label="Subtotal" value={money(totals.subtotal)} />
-          <Row label="Tax" value={money(totals.tax)} />
-          <Row label="Service / delivery" value={money(totals.delivery)} />
           <Row label="Discount" value={money(totals.discount)} />
+          <Row label="Taxable" value={money(totals.taxable ?? Math.max(0, totals.subtotal - totals.discount))} />
+          <Row label={taxLabel} value={money(totals.tax)} />
+          <Row label="Service / delivery" value={money(totals.delivery)} />
+          <Row label="Total" value={money(totals.total)} />
         </div>
       )}
     </div>

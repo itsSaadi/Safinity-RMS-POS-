@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Bell, ChefHat } from 'lucide-react'
 import { usePos } from '../context/PosContext'
-import { elapsedLabel, lineMeta, typeLabel } from '../utils/format'
+import { elapsedLabel, lineMeta, orderLabel, typeLabel } from '../utils/format'
 
 const columns = [
   { id: 'new', title: 'New orders', action: 'Start', next: 'preparing', wash: 'bg-orange-100/80 dark:bg-orange-500/10', count: 'bg-orange-500 text-white' },
@@ -66,13 +66,17 @@ function playReadyBell() {
 }
 
 export default function KitchenPage() {
-  const { orders, setPrepStatus, setItemReady } = usePos()
+  const { orders, setPrepStatus, setItemReady, loadOrders, ordersLoading, branchId } = usePos()
   const [station, setStation] = useState('All')
   const [now, setNow] = useState(Date.now())
   const [ringing, setRinging] = useState(false)
   const [dragId, setDragId] = useState(null)
   const [overColumn, setOverColumn] = useState(null)
   const seenReady = useRef(null)
+
+  useEffect(() => {
+    if (branchId) loadOrders().catch(() => {})
+  }, [branchId])
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000)
@@ -128,9 +132,18 @@ export default function KitchenPage() {
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange-500">Kitchen display</p>
           <h1 className="font-display text-2xl leading-none">The pass</h1>
-          <p className="mt-1 text-[11px] font-bold text-stone-500">Drag a ticket into another column</p>
+          <p className="mt-1 text-[11px] font-bold text-stone-500">
+            Drag a ticket into another column{ordersLoading ? ' · syncing…' : ''}
+          </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => loadOrders().catch(() => {})}
+            className="rounded-full bg-white px-4 py-2 text-xs font-extrabold shadow-card dark:bg-white/10"
+          >
+            Refresh
+          </button>
           <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold ${lateKey ? 'animate-pulse bg-red-600 text-white' : 'bg-stone-100 text-stone-500 dark:bg-white/10 dark:text-stone-300'}`}>
             Late alarm
           </span>
@@ -226,7 +239,7 @@ function Ticket({ order, now, station, action, onAdvance, onItem, dragging, onDr
       className={`cursor-grab rounded-xl border bg-white px-2.5 py-2 text-[#1c1917] shadow-card active:cursor-grabbing dark:bg-[#241c16] dark:text-[#f6efe6] ${late ? 'border-red-400' : order.prepStatus === 'ready' ? 'border-emerald-300' : 'border-white/80 dark:border-white/10'}`}
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="truncate text-sm font-extrabold leading-none">{order.id}</p>
+        <p className="truncate text-sm font-extrabold leading-none">{orderLabel(order)}</p>
         <p className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[11px] font-bold tabular-nums ${late ? 'bg-red-600 text-white' : 'bg-stone-100 text-stone-800 dark:bg-white/10'}`}>
           {elapsedLabel(order.createdAt, now)}
         </p>

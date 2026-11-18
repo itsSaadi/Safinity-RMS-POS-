@@ -12,7 +12,7 @@ import TopBar from './TopBar'
 
 export default function LightCounter() {
   const navigate = useNavigate()
-  const { products, productById, addLine, updateLine, toast, cart } = usePos()
+  const { products, productById, addLine, updateLine, toast, cart, saveEditedOrder, cancelEditOrder } = usePos()
   const [category, setCategory] = useState('all')
   const [query, setQuery] = useState('')
   const [dialog, setDialog] = useState(null)
@@ -81,12 +81,32 @@ export default function LightCounter() {
           payMethod={payMethod}
           onEdit={editLine}
           onCustomer={() => openDialog('customer')}
+          onTable={() => openDialog('table')}
+          onRider={() => openDialog('rider')}
           onMenu={() => openDialog('menu')}
           onMethod={() => openDialog('method')}
           onSave={() => openDialog('save')}
           onPrint={() => openDialog('print')}
           onDiscount={() => openDialog('discount')}
-          onPay={() => openDialog('pay')}
+          onPayNow={() => {
+            if (payMethod === 'later') setPayMethod('cash')
+            openDialog('pay')
+          }}
+          onPayLater={() => {
+            setPayMethod('later')
+            openDialog('pay')
+          }}
+          onSaveEdit={async () => {
+            try {
+              await saveEditedOrder({ method: 'later', paymentTypeId: cart.paymentTypeId })
+            } catch (error) {
+              toast(error.message || 'Could not save order', 'bad')
+            }
+          }}
+          onCancelEdit={() => {
+            cancelEditOrder()
+            toast('Edit cancelled')
+          }}
         />
         <section className="flex min-h-0 min-w-0 flex-1 flex-col">
           <div className="flex justify-end">

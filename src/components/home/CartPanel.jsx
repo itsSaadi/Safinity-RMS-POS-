@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Bike, Minus, Pencil, Plus, ShoppingBag, Trash2, UtensilsCrossed, X } from 'lucide-react'
-import { ORDER_TYPES } from '../../data/catalog'
 import { usePos, summarize } from '../../context/PosContext'
 import { lineMeta, pkr } from '../../utils/format'
 import FoodImage from '../ui/FoodImage'
@@ -10,27 +9,33 @@ const icons = {
   'dine-in': UtensilsCrossed,
   takeaway: ShoppingBag,
   delivery: Bike,
+  foodpanda: ShoppingBag,
+  bite: Bike,
 }
 
 export default function CartPanel({ onEdit, onCheckout, onClose, mobile }) {
-  const { cart, updateCart, setQty, removeLine, clearCart, riders, tables, waiters, zones, toast } = usePos()
-  const serviceTypes = ORDER_TYPES.filter((type) => ['dine-in', 'takeaway', 'delivery'].includes(type.id))
-  const totals = summarize(cart)
+  const { cart, updateCart, setOrderType, setQty, removeLine, clearCart, riders, tables, waiters, zones, orderTypes, orderChannel, toast, paymentTypes, taxInclusive, editingOrder, saveEditedOrder, cancelEditOrder } = usePos()
+  const serviceTypes = orderTypes
+  const selectedPayment = paymentTypes.find((item) => item.id === cart.paymentTypeId)
+  const totals = summarize(cart, selectedPayment?.tax, taxInclusive)
   const [confirmClear, setConfirmClear] = useState(false)
+  const editing = Boolean(editingOrder?.id)
 
   const missing = useMemo(() => {
     if (!cart.lines.length) return 'Add a dish to start the order'
-    if (cart.orderType === 'dine-in' && !cart.tableId) return 'Choose a table'
-    if (cart.orderType === 'delivery' && !cart.zoneId) return 'Choose a delivery zone'
-    if ((cart.orderType === 'foodpanda' || cart.orderType === 'bite') && !cart.externalRef.trim()) return 'Add the platform order number'
+    if (orderChannel === 'dine-in' && !cart.tableId) return 'Choose a table'
+    if (['delivery', 'foodpanda', 'bite'].includes(orderChannel) && !String(cart.address || '').trim()) return 'Add a delivery address'
+    if ((orderChannel === 'foodpanda' || orderChannel === 'bite') && !String(cart.externalRef || '').trim()) return 'Add the platform order number'
     return ''
-  }, [cart])
+  }, [cart, orderChannel])
 
   return (
     <section className={`flex h-full min-h-0 flex-col bg-surface ${mobile ? '' : 'border-l border-line'}`}>
       <div className="flex items-center justify-between px-4 pb-2 pt-4">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">This order</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">
+            {editing ? `Editing ${editingOrder.orderNumber}` : 'This order'}
+          </p>
           <h2 className="font-display text-xl leading-none">{totals.count} items</h2>
         </div>
         <div className="flex items-center gap-2">
@@ -58,15 +63,15 @@ export default function CartPanel({ onEdit, onCheckout, onClose, mobile }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-1.5 px-3">
+      <div className={`grid gap-1.5 px-3 ${serviceTypes.length > 3 ? 'grid-cols-3 sm:grid-cols-5' : 'grid-cols-3'}`}>
         {serviceTypes.map((type) => {
-          const Icon = icons[type.id]
-          const selected = cart.orderType === type.id
+          const Icon = icons[type.channel]
+          const selected = cart.orderType === type.code
           return (
             <button
-              key={type.id}
+              key={type.code}
               type="button"
-              onClick={() => updateCart({ orderType: type.id })}
+              onClick={() => setOrderType(type)}
               className={`flex min-h-[68px] flex-col items-center justify-center gap-1 rounded-2xl border text-[10px] font-bold ${selected ? 'border-orange-500 bg-orange-500/10 text-orange-600 dark:text-orange-300' : 'border-line text-muted'}`}
             >
               {Icon ? <Icon size={16} /> : <span className="grid h-5 w-5 place-items-center rounded-md bg-ink text-[9px] text-white">{type.label.slice(0, 1)}</span>}
@@ -78,20 +83,20 @@ export default function CartPanel({ onEdit, onCheckout, onClose, mobile }) {
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
         <AnimatePresence initial={false}>
-          {cart.orderType === 'dine-in' && (
+          {orderChannel === 'dine-in' && (
             <motion.div key="dine" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-2 overflow-hidden">
               <ChipRow label="Table" options={tables} value={cart.tableId} onChange={(tableId) => updateCart({ tableId })} />
               <ChipRow label="Waiter" options={waiters} value={cart.waiterId} onChange={(waiterId) => updateCart({ waiterId })} />
               <Field label="Guest name" value={cart.customer} onChange={(customer) => updateCart({ customer })} placeholder="Optional" />
             </motion.div>
           )}
-          {cart.orderType === 'takeaway' && (
+          {orderChannel === 'takeaway' && (
             <motion.div key="take" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
               <Field label="Guest name" value={cart.customer} onChange={(customer) => updateCart({ customer })} placeholder="Name on the bag" />
               <Field label="Phone" value={cart.phone} onChange={(phone) => updateCart({ phone })} placeholder="03xx" />
             </motion.div>
           )}
-          {cart.orderType === 'delivery' && (
+          {orderChannel === 'delivery' && (
             <motion.div key="del" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
               <Field label="Guest name" value={cart.customer} onChange={(customer) => updateCart({ customer })} placeholder="Required" />
               <Field label="Phone" value={cart.phone} onChange={(phone) => updateCart({ phone })} placeholder="Required" />
@@ -99,18 +104,25 @@ export default function CartPanel({ onEdit, onCheckout, onClose, mobile }) {
               <ChipRow label="Zone" options={zones} value={cart.zoneId} onChange={(zoneId) => updateCart({ zoneId })} />
               <label className="block text-[11px] font-bold uppercase tracking-[0.14em] text-muted">
                 Rider
-                <select value={cart.rider} onChange={(event) => updateCart({ rider: event.target.value })} className="mt-1 h-11 w-full rounded-2xl border border-line bg-bg px-3 text-sm font-semibold text-ink">
+                <select
+                  value={cart.riderId}
+                  onChange={(event) => {
+                    const rider = riders.find((row) => row.id === event.target.value)
+                    updateCart({ riderId: rider?.id || '', rider: rider?.name || '' })
+                  }}
+                  className="mt-1 h-11 w-full rounded-2xl border border-line bg-bg px-3 text-sm font-semibold text-ink"
+                >
                   <option value="">Select rider</option>
-                  {riders.filter((rider) => rider.id !== 'panda').map((rider) => (
-                    <option key={rider.id} value={rider.name}>{rider.name}</option>
+                  {riders.map((rider) => (
+                    <option key={rider.id} value={rider.id}>{rider.name}</option>
                   ))}
                 </select>
               </label>
             </motion.div>
           )}
-          {(cart.orderType === 'foodpanda' || cart.orderType === 'bite') && (
+          {(orderChannel === 'foodpanda' || orderChannel === 'bite') && (
             <motion.div key="platform" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
-              <Field label="Platform order no." value={cart.externalRef} onChange={(externalRef) => updateCart({ externalRef })} placeholder={cart.orderType === 'bite' ? 'BT-00000' : 'FP-00000'} />
+              <Field label="Platform order no." value={cart.externalRef} onChange={(externalRef) => updateCart({ externalRef })} placeholder={orderChannel === 'bite' ? 'BT-00000' : 'FP-00000'} />
               <Field label="Guest name" value={cart.customer} onChange={(customer) => updateCart({ customer })} placeholder="From the ticket" />
             </motion.div>
           )}
@@ -165,19 +177,52 @@ export default function CartPanel({ onEdit, onCheckout, onClose, mobile }) {
           <span className="text-xs uppercase tracking-[0.16em] text-white/50">Grand total</span>
           <span className="font-display text-2xl leading-none text-orange-400">{pkr(totals.total)}</span>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            if (missing) {
-              toast(missing, 'warn')
-              return
-            }
-            onCheckout()
-          }}
-          className="mt-3 h-11 w-full rounded-2xl bg-orange-500 text-sm font-extrabold text-white"
-        >
-          Checkout · {pkr(totals.total)}
-        </button>
+        {editing ? (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                cancelEditOrder()
+                toast('Edit cancelled')
+              }}
+              className="h-11 rounded-2xl bg-white/10 text-sm font-extrabold text-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (missing) {
+                  toast(missing, 'warn')
+                  return
+                }
+                try {
+                  await saveEditedOrder({ method: 'later', paymentTypeId: cart.paymentTypeId })
+                  onClose?.()
+                } catch (error) {
+                  toast(error.message || 'Could not save order', 'bad')
+                }
+              }}
+              className="h-11 rounded-2xl bg-blue-500 text-sm font-extrabold text-white"
+            >
+              Save · {pkr(totals.total)}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              if (missing) {
+                toast(missing, 'warn')
+                return
+              }
+              onCheckout()
+            }}
+            className="mt-3 h-11 w-full rounded-2xl bg-orange-500 text-sm font-extrabold text-white"
+          >
+            Checkout · {pkr(totals.total)}
+          </button>
+        )}
       </div>
     </section>
   )
