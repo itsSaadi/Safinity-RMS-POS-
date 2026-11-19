@@ -537,16 +537,6 @@ export function PosProvider({ children }) {
     setProducts(mapped.products)
   }, [cart.orderType, rawCatalog])
 
-  useEffect(() => {
-    if (!user || !branchId) return undefined
-    if (!can(user, 'order:read') && user.role !== 'SUPER_ADMIN') return undefined
-    const tick = () => {
-      loadOrders(branchId, user).catch(() => {})
-    }
-    const id = window.setInterval(tick, 12000)
-    return () => window.clearInterval(id)
-  }, [user?.id, branchId])
-
   const signIn = async (email, password) => {
     const person = await login(email, password)
     clearStoredDesk()

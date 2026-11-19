@@ -2,12 +2,13 @@ import { useMemo, useState } from 'react'
 import { Banknote, Check, CreditCard, Smartphone, Wallet, X } from 'lucide-react'
 import { summarize, usePos } from '../../context/PosContext'
 import { lineMeta, orderLabel, pkr } from '../../utils/format'
+import { INVOICE_TYPES, printInvoice } from '../../utils/printInvoice'
 import Overlay from '../ui/Overlay'
 
 const quickCash = [1000, 2000, 5000]
 
 export default function CheckoutModal({ onClose }) {
-  const { cart, placeOrder, paymentTypes, updateCart, taxInclusive, orderChannel } = usePos()
+  const { cart, placeOrder, paymentTypes, updateCart, taxInclusive, orderChannel, user, branchLabel, toast } = usePos()
   const selectedPayment = paymentTypes.find((item) => item.id === cart.paymentTypeId)
     || paymentTypes.find((item) => item.kind === (paymentTypes[0]?.kind))
     || paymentTypes[0]
@@ -87,9 +88,10 @@ export default function CheckoutModal({ onClose }) {
   }
 
   if (done) {
+    const printCtx = { user, branchLabel, restaurant: user?.restaurant || {} }
     return (
       <Overlay onClose={onClose} className="max-w-lg rounded-[32px]">
-        <div id="receipt" className="p-6">
+        <div className="p-6">
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-good/15 text-good">
             <Check size={28} />
           </div>
@@ -101,8 +103,41 @@ export default function CheckoutModal({ onClose }) {
             {done.paymentMethod === 'cash' && <div className="flex justify-between"><span>Change</span><strong>{pkr(done.change)}</strong></div>}
             {done.balance > 0 && <div className="flex justify-between"><span>Balance</span><strong>{pkr(done.balance)}</strong></div>}
           </div>
-          <div className="mt-4 flex gap-2 print:hidden">
-            <button type="button" onClick={() => window.print()} className="h-12 flex-1 rounded-2xl bg-soft font-bold">Print receipt</button>
+          <div className="mt-4 grid gap-2">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted">Print invoice</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {INVOICE_TYPES.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    try {
+                      printInvoice(item.id, done, printCtx)
+                    } catch (error) {
+                      toast(error.message || 'Could not print', 'bad')
+                    }
+                  }}
+                  className="h-11 rounded-2xl bg-soft text-xs font-bold"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  printInvoice('customer', done, printCtx)
+                } catch (error) {
+                  toast(error.message || 'Could not print', 'bad')
+                }
+              }}
+              className="h-12 flex-1 rounded-2xl bg-soft font-bold"
+            >
+              Print customer
+            </button>
             <button type="button" onClick={onClose} className="h-12 flex-1 rounded-2xl bg-ink font-bold text-white">New order</button>
           </div>
         </div>

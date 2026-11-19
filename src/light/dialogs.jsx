@@ -6,6 +6,7 @@ import { channelFromOrderCode } from '../api'
 import { notifications } from '../data/seed'
 import { summarize, usePos } from '../context/PosContext'
 import { formatTime, itemsLabel, lineMeta, orderLabel, prepLabel } from '../utils/format'
+import { INVOICE_TYPES, printInvoice } from '../utils/printInvoice'
 import Button from './Button'
 import Chip from './Chip'
 import { buildLine } from './line'
@@ -543,7 +544,7 @@ function CalcRow({ label, value }) {
 }
 
 function PayDialog({ close, payMethod, setPayMethod, take }) {
-  const { cart, placeOrder, toast, paymentTypes, updateCart, taxInclusive } = usePos()
+  const { cart, placeOrder, toast, paymentTypes, updateCart, taxInclusive, user, branchLabel } = usePos()
   const payNowMethods = paymentTypes.filter((item) => item.kind !== 'later')
   const [method, setMethod] = useState(payMethod === 'later' && take ? 'later' : (payMethod && payMethod !== 'later' ? payMethod : payNowMethods[0]?.kind || 'cash'))
   const [paymentTypeId, setPaymentTypeId] = useState(() => {
@@ -665,14 +666,55 @@ function PayDialog({ close, payMethod, setPayMethod, take }) {
   }
 
   if (done) {
+    const printCtx = { user, branchLabel, restaurant: user?.restaurant || {} }
     return (
-      <Modal title="Ticket sent" onClose={close} footer={<Button variant="primary" onClick={close}>New order</Button>}>
-        <div id="receipt" className="space-y-2 text-sm">
+      <Modal
+        title="Ticket sent"
+        onClose={close}
+        footer={(
+          <>
+            <Button onClick={close}>New order</Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                try {
+                  printInvoice('customer', done, printCtx)
+                } catch (error) {
+                  toast(error.message || 'Could not print', 'bad')
+                }
+              }}
+            >
+              Print customer
+            </Button>
+          </>
+        )}
+      >
+        <div className="space-y-3 text-sm">
           <p className="font-semibold">{orderLabel(done)} is on the kitchen pass</p>
           <p>Total {money(done.amount)}</p>
           <p className="capitalize">Method {done.paymentMethod}</p>
           {done.change > 0 && <p>Change {money(done.change)}</p>}
           {done.paymentStatus === 'unpaid' && <p>Pay later · due {money(done.balance)}</p>}
+          <div className="grid gap-2 pt-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--pos-muted)]">Print invoice</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {INVOICE_TYPES.map((item) => (
+                <Button
+                  key={item.id}
+                  variant="secondary"
+                  onClick={() => {
+                    try {
+                      printInvoice(item.id, done, printCtx)
+                    } catch (error) {
+                      toast(error.message || 'Could not print', 'bad')
+                    }
+                  }}
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </div>
+          </div>
         </div>
       </Modal>
     )

@@ -13,7 +13,7 @@ import CheckoutModal from '../components/home/CheckoutModal'
 import FoodImage from '../components/ui/FoodImage'
 
 export default function HomePage() {
-  const { cart, addLine, updateLine, recentIds, products, productById, user, paymentTypes, taxInclusive } = usePos()
+  const { cart, addLine, updateLine, recentIds, products, productById, user, paymentTypes, taxInclusive, menuLoading } = usePos()
   const [category, setCategory] = useState('all')
   const [query, setQuery] = useState('')
   const [editor, setEditor] = useState(null)
@@ -103,9 +103,16 @@ export default function HomePage() {
 
         <div className="mb-3 mt-5 flex items-center justify-between">
           <h2 className="text-lg font-extrabold">{query ? 'Matches' : 'The menu'}</h2>
-          <span className="text-sm text-muted">{visible.length} dishes</span>
+          <span className="text-sm text-muted">{menuLoading ? 'Loading…' : `${visible.length} dishes`}</span>
         </div>
-        {visible.length === 0 ? (
+        {menuLoading ? (
+          <div className="grid place-items-center rounded-[28px] bg-surface px-6 py-20 shadow-card">
+            <div className="text-center">
+              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
+              <p className="mt-3 text-sm font-semibold text-muted">Loading menu…</p>
+            </div>
+          </div>
+        ) : visible.length === 0 ? (
           <div className="rounded-[28px] bg-surface px-6 py-16 text-center shadow-card">
             <p className="font-display text-3xl">Nothing on this pass</p>
             <p className="mt-1 text-sm text-muted">Try another name or code.</p>

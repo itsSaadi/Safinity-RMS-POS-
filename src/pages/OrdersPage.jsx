@@ -1,16 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { LayoutGrid, Pencil, Rows3, Search } from 'lucide-react'
+import { CreditCard, LayoutGrid, Pencil, Rows3, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { channelFromOrderCode } from '../api'
 import { usePos } from '../context/PosContext'
 import { formatTime, itemsLabel, orderLabel, pkr, prepLabel, sameDay, typeLabel } from '../utils/format'
 import Badge from '../components/ui/Badge'
 import OrderDrawer from '../components/orders/OrderDrawer'
+import PrintInvoiceMenu from '../components/orders/PrintInvoiceMenu'
 
 const payments = ['all', 'paid', 'unpaid', 'partial']
 const preps = ['all', 'new', 'preparing', 'ready', 'dispatched', 'cancelled']
 const flow = ['new', 'preparing', 'ready', 'dispatched']
+
+const statusOptions = [
+  { id: 'new', label: 'Received' },
+  { id: 'preparing', label: 'Preparing' },
+  { id: 'ready', label: 'Ready' },
+  { id: 'dispatched', label: 'Dispatched' },
+]
 
 export default function OrdersPage({ source = 'today' }) {
   const { orders, history, orderTypes, loadOrders, ordersLoading, branchId, setPrepStatus, startCollect, startEditOrder, canEditOrder } = usePos()
@@ -43,10 +51,9 @@ export default function OrdersPage({ source = 'today' }) {
     })
   }, [pool, query, type, payment, prep, date])
 
-  const advance = (order) => {
-    if (readOnly) return
-    const next = flow[Math.min(flow.indexOf(order.prepStatus) + 1, flow.length - 1)]
-    if (next && next !== order.prepStatus) setPrepStatus(order.id, next)
+  const setStatus = (order, next) => {
+    if (readOnly || !next || next === order.prepStatus) return
+    setPrepStatus(order.id, next)
   }
 
   const pay = (order) => {
@@ -57,9 +64,7 @@ export default function OrdersPage({ source = 'today' }) {
 
   const edit = (order) => {
     if (readOnly) return
-    if (!canEditOrder(order)) {
-      return
-    }
+    if (!canEditOrder(order)) return
     if (startEditOrder(order)) navigate('/')
   }
 
@@ -117,7 +122,7 @@ export default function OrdersPage({ source = 'today' }) {
                   readOnly={readOnly}
                   canEdit={!readOnly && canEditOrder(order)}
                   onOpen={() => setActive(order)}
-                  onAdvance={() => advance(order)}
+                  onStatus={(next) => setStatus(order, next)}
                   onPay={() => pay(order)}
                   onEdit={() => edit(order)}
                 />
@@ -139,8 +144,6 @@ export default function OrdersPage({ source = 'today' }) {
               </thead>
               <tbody>
                 {filtered.map((order) => {
-                  const next = flow[Math.min(flow.indexOf(order.prepStatus) + 1, flow.length - 1)]
-                  const canAdvance = !readOnly && order.prepStatus !== 'dispatched' && order.prepStatus !== 'cancelled' && next !== order.prepStatus
                   const canPay = !readOnly && order.paymentStatus !== 'paid' && order.prepStatus !== 'cancelled'
                   const showEdit = !readOnly && canEditOrder(order)
                   return (
@@ -159,25 +162,29 @@ export default function OrdersPage({ source = 'today' }) {
                       <td className="px-4 py-3"><Badge tone={order.prepStatus}>{prepLabel(order.prepStatus)}</Badge></td>
                       {!readOnly && (
                         <td className="px-4 py-3">
-                          <div className="flex flex-wrap gap-1.5">
-                            {showEdit && (
-                              <button type="button" onClick={() => edit(order)} className="inline-flex h-9 items-center gap-1 rounded-full bg-blue-600 px-3 text-xs font-bold text-white">
-                                <Pencil size={12} /> Edit
-                              </button>
-                            )}
-                            {canAdvance && (
-                              <button type="button" onClick={() => advance(order)} className="h-9 rounded-full bg-ink px-3 text-xs font-bold text-white">
-                                {prepLabel(next)}
-                              </button>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {order.prepStatus !== 'cancelled' && (
+                              <select
+                                value={order.prepStatus}
+                                onChange={(event) => setStatus(order, event.target.value)}
+                                className="h-9 rounded-xl border border-line bg-white px-2 text-xs font-bold"
+                              >
+                                {statusOptions.map((item) => (
+                                  <option key={item.id} value={item.id}>{item.label}</option>
+                                ))}
+                              </select>
                             )}
                             {canPay && (
-                              <button type="button" onClick={() => pay(order)} className="h-9 rounded-full bg-orange-500 px-3 text-xs font-bold text-white">
-                                Pay
+                              <button type="button" aria-label="Take payment" onClick={() => pay(order)} className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-white">
+                                <CreditCard size={14} />
                               </button>
                             )}
-                            <button type="button" onClick={() => setActive(order)} className="h-9 rounded-full bg-soft px-3 text-xs font-bold">
-                              Details
-                            </button>
+                            <PrintInvoiceMenu order={order} buttonClassName="grid h-9 w-9 place-items-center rounded-xl border border-line bg-white" />
+                            {showEdit && (
+                              <button type="button" aria-label="Edit order" onClick={() => edit(order)} className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-white">
+                                <Pencil size={14} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       )}
@@ -202,11 +209,16 @@ export default function OrdersPage({ source = 'today' }) {
   )
 }
 
-function OrderCard({ order, onOpen, onAdvance, onPay, onEdit, readOnly, canEdit }) {
-  const next = flow[Math.min(flow.indexOf(order.prepStatus) + 1, flow.length - 1)]
-  const canAdvance = !readOnly && order.prepStatus !== 'dispatched' && order.prepStatus !== 'cancelled' && next !== order.prepStatus
+function OrderCard({ order, onOpen, onStatus, onPay, onEdit, readOnly, canEdit }) {
   const canPay = !readOnly && order.paymentStatus !== 'paid' && order.prepStatus !== 'cancelled'
   const items = order.items || []
+  const statusTone = {
+    new: 'bg-orange-500',
+    preparing: 'bg-amber-500',
+    ready: 'bg-emerald-500',
+    dispatched: 'bg-stone-500',
+    cancelled: 'bg-red-500',
+  }[order.prepStatus] || 'bg-stone-400'
 
   return (
     <motion.article
@@ -224,7 +236,6 @@ function OrderCard({ order, onOpen, onAdvance, onPay, onEdit, readOnly, canEdit 
           <p className="shrink-0 text-sm font-extrabold">{pkr(order.amount)}</p>
         </div>
         <div className="mt-2 flex flex-wrap gap-1">
-          <Badge tone={order.prepStatus}>{prepLabel(order.prepStatus)}</Badge>
           <Badge tone={order.paymentStatus}>{order.paymentStatus}</Badge>
           <span className="rounded-full bg-soft px-2 py-0.5 text-[10px] font-bold uppercase">{typeLabel(order.type)}</span>
         </div>
@@ -245,28 +256,35 @@ function OrderCard({ order, onOpen, onAdvance, onPay, onEdit, readOnly, canEdit 
           {order.balance > 0 ? ` · due ${pkr(order.balance)}` : ''}
         </p>
       </button>
-      {!readOnly && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {canEdit && (
-            <button type="button" onClick={onEdit} className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-600 text-xs font-extrabold text-white">
-              <Pencil size={14} /> Edit
-            </button>
-          )}
-          {canAdvance && (
-            <button type="button" onClick={onAdvance} className="h-10 flex-1 rounded-xl bg-ink text-xs font-extrabold text-white">
-              {prepLabel(next)}
-            </button>
-          )}
-          {canPay && (
-            <button type="button" onClick={onPay} className="h-10 flex-1 rounded-xl bg-orange-500 text-xs font-extrabold text-white">
-              Take payment
-            </button>
-          )}
-          {!canEdit && !canAdvance && !canPay && (
-            <button type="button" onClick={onOpen} className="h-10 flex-1 rounded-xl bg-soft text-xs font-extrabold">
-              Details
-            </button>
-          )}
+
+      {!readOnly && order.prepStatus !== 'cancelled' && (
+        <div className="mt-3 flex items-center justify-between gap-2 rounded-2xl bg-[#eef1fb] px-2 py-2">
+          <label className="relative inline-flex min-w-0 flex-1">
+            <span className={`pointer-events-none absolute left-3 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${statusTone}`} />
+            <select
+              value={order.prepStatus}
+              onChange={(event) => onStatus(event.target.value)}
+              className="h-10 w-full appearance-none rounded-xl border border-white bg-white pl-7 pr-8 text-xs font-bold text-ink shadow-sm outline-none"
+              aria-label="Change status"
+            >
+              {statusOptions.map((item) => (
+                <option key={item.id} value={item.id}>{item.label}</option>
+              ))}
+            </select>
+          </label>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {canPay && (
+              <button type="button" aria-label="Take payment" onClick={onPay} className="grid h-10 w-10 place-items-center rounded-xl border border-white bg-white text-ink shadow-sm">
+                <CreditCard size={16} />
+              </button>
+            )}
+            <PrintInvoiceMenu order={order} />
+            {canEdit && (
+              <button type="button" aria-label="Edit order" onClick={onEdit} className="grid h-10 w-10 place-items-center rounded-xl border border-white bg-white text-ink shadow-sm">
+                <Pencil size={16} />
+              </button>
+            )}
+          </div>
         </div>
       )}
     </motion.article>

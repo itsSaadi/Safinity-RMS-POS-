@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { usePos } from '../../context/PosContext'
 import { formatTime, lineMeta, orderLabel, pkr, prepLabel, typeLabel } from '../../utils/format'
 import Badge from '../ui/Badge'
+import PrintInvoiceMenu from './PrintInvoiceMenu'
 
 const flow = ['new', 'preparing', 'ready', 'dispatched']
 
@@ -79,47 +80,50 @@ export default function OrderDrawer({ order, onClose, readOnly = false }) {
             <span className="font-display text-2xl leading-none">{pkr(order.amount)}</span>
           </div>
           {order.balance > 0 && <p className="text-sm font-bold text-orange-500">Balance {pkr(order.balance)}</p>}
-          {!readOnly && (
-            <div className="flex flex-wrap gap-2">
-              {showEdit && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (startEditOrder(order)) {
-                      onClose()
-                      navigate('/')
-                    }
-                  }}
-                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-600 font-bold text-white"
-                >
-                  <Pencil size={16} /> Edit order
-                </button>
-              )}
-              {order.prepStatus !== 'dispatched' && order.prepStatus !== 'cancelled' && (
-                <button type="button" onClick={() => setPrepStatus(order.id, next)} className="h-12 flex-1 rounded-2xl bg-ink font-bold text-white">
-                  Move to {prepLabel(next)}
-                </button>
-              )}
-              {order.paymentStatus !== 'paid' && order.prepStatus !== 'cancelled' && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    startCollect(order.id)
+          <div className="flex flex-wrap gap-2">
+            <PrintInvoiceMenu
+              order={order}
+              label="Print"
+              buttonClassName="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-soft font-bold"
+            />
+            {!readOnly && showEdit && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (startEditOrder(order)) {
                     onClose()
                     navigate('/')
-                  }}
-                  className="h-12 flex-1 rounded-2xl bg-orange-500 font-bold text-white"
-                >
-                  Take payment
-                </button>
-              )}
-              {canCancel && (
-                <button type="button" disabled={busy} onClick={onCancel} className="h-12 w-full rounded-2xl bg-red-500/10 font-bold text-red-600 disabled:opacity-60">
-                  Cancel order
-                </button>
-              )}
-            </div>
-          )}
+                  }
+                }}
+                className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-600 font-bold text-white"
+              >
+                <Pencil size={16} /> Edit order
+              </button>
+            )}
+            {!readOnly && order.prepStatus !== 'dispatched' && order.prepStatus !== 'cancelled' && (
+              <button type="button" onClick={() => setPrepStatus(order.id, next)} className="h-12 flex-1 rounded-2xl bg-ink font-bold text-white">
+                Move to {prepLabel(next)}
+              </button>
+            )}
+            {!readOnly && order.paymentStatus !== 'paid' && order.prepStatus !== 'cancelled' && (
+              <button
+                type="button"
+                onClick={() => {
+                  startCollect(order.id)
+                  onClose()
+                  navigate('/')
+                }}
+                className="h-12 flex-1 rounded-2xl bg-orange-500 font-bold text-white"
+              >
+                Take payment
+              </button>
+            )}
+            {!readOnly && canCancel && (
+              <button type="button" disabled={busy} onClick={onCancel} className="h-12 w-full rounded-2xl bg-red-500/10 font-bold text-red-600 disabled:opacity-60">
+                Cancel order
+              </button>
+            )}
+          </div>
         </div>
       </motion.aside>
     </div>

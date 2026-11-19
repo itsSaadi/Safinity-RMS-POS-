@@ -12,7 +12,7 @@ import TopBar from './TopBar'
 
 export default function LightCounter() {
   const navigate = useNavigate()
-  const { products, productById, addLine, updateLine, toast, cart, saveEditedOrder, cancelEditOrder } = usePos()
+  const { products, productById, addLine, updateLine, toast, cart, saveEditedOrder, cancelEditOrder, menuLoading } = usePos()
   const [category, setCategory] = useState('all')
   const [query, setQuery] = useState('')
   const [dialog, setDialog] = useState(null)
@@ -65,7 +65,7 @@ export default function LightCounter() {
   }
 
   return (
-    <div className="pos-light flex h-dvh min-h-0 flex-col">
+    <div className="pos-light flex h-full min-h-0 flex-col">
       <TopBar
         onBack={() => navigate('/more')}
         onNew={() => (cart.lines.length ? openDialog('clear') : toast('The ticket is already empty'))}
@@ -116,7 +116,16 @@ export default function LightCounter() {
             <CategoryChips active={category} onChange={setCategory} />
           </div>
           <div className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
-            <ProductGrid products={visible} onAdd={addProduct} />
+            {menuLoading ? (
+              <div className="grid h-full min-h-[240px] place-items-center rounded-[var(--pos-radius)] border border-dashed border-[var(--pos-border)] bg-white/70">
+                <div className="text-center">
+                  <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[var(--pos-accent)] border-t-transparent" />
+                  <p className="mt-3 text-sm font-semibold text-[var(--pos-muted)]">Loading menu…</p>
+                </div>
+              </div>
+            ) : (
+              <ProductGrid products={visible} onAdd={addProduct} />
+            )}
           </div>
         </section>
       </div>
