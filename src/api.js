@@ -1,4 +1,4 @@
-const API = '/api/v1'
+const API = (import.meta.env.VITE_API_URL || 'https://rms-api.unfoldpk.com/api/v1').replace(/\/$/, '')
 const REFRESH_KEY = 'orra.pos.refresh'
 const BRANCH_KEY = 'orra.pos.branch'
 const CART_KEY = 'orra.pos.cart'
