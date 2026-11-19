@@ -165,9 +165,14 @@ function shell(title, body) {
 <body>
   <div class="ticket">${body}</div>
   <script>
-    window.onload = function () {
-      setTimeout(function () { window.print(); }, 180);
-    };
+    function goPrint() {
+      try { window.focus(); window.print(); } catch (e) {}
+    }
+    if (document.readyState === 'complete') {
+      setTimeout(goPrint, 250);
+    } else {
+      window.addEventListener('load', function () { setTimeout(goPrint, 250); });
+    }
   </script>
 </body>
 </html>`
@@ -254,17 +259,20 @@ export const INVOICE_TYPES = [
 ]
 
 export function printInvoice(type, order, ctx = {}) {
-  if (!order) return
+  if (!order) throw new Error('No order to print')
+
   let html = ''
   if (type === 'kitchen') html = buildKitchenHtml(order, ctx)
   else if (type === 'provision') html = buildProvisionHtml(order, ctx)
   else html = buildCustomerHtml(order, ctx)
 
-  const win = window.open('', '_blank', 'noopener,noreferrer,width=420,height=720')
+  // Blob URL avoids blank about:blank windows (document.write + noopener issues).
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const win = window.open(url, '_blank', 'width=480,height=760')
   if (!win) {
+    URL.revokeObjectURL(url)
     throw new Error('Allow pop-ups to print invoices')
   }
-  win.document.open()
-  win.document.write(html)
-  win.document.close()
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }

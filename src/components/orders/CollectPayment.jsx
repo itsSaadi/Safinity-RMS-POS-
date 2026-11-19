@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { usePos } from '../../context/PosContext'
 import { lineMeta, orderLabel, pkr, typeLabel } from '../../utils/format'
 
@@ -12,6 +13,7 @@ export default function CollectPayment() {
 }
 
 function CollectForm({ orderId }) {
+  const navigate = useNavigate()
   const { orders, history, cancelCollect, settleOrder, paymentTypes } = usePos()
   const methods = paymentTypes.filter((item) => item.kind !== 'later')
   const order = orders.find((item) => item.id === orderId) || history.find((item) => item.id === orderId)
@@ -64,6 +66,7 @@ function CollectForm({ orderId }) {
         txn,
         notes: [wallet, txn].filter(Boolean).join(' · ') || undefined,
       })
+      navigate('/orders')
     } catch (err) {
       setError(err.message || 'Payment failed')
     } finally {

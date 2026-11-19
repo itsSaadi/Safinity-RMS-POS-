@@ -80,11 +80,12 @@ export default function OrderDrawer({ order, onClose, readOnly = false }) {
             <span className="font-display text-2xl leading-none">{pkr(order.amount)}</span>
           </div>
           {order.balance > 0 && <p className="text-sm font-bold text-orange-500">Balance {pkr(order.balance)}</p>}
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <PrintInvoiceMenu
               order={order}
               label="Print"
-              buttonClassName="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-soft font-bold"
+              className="w-full"
+              buttonClassName="inline-flex h-12 w-full items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-soft text-sm font-bold"
             />
             {!readOnly && showEdit && (
               <button
@@ -95,13 +96,18 @@ export default function OrderDrawer({ order, onClose, readOnly = false }) {
                     navigate('/')
                   }
                 }}
-                className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-600 font-bold text-white"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-blue-600 px-3 text-sm font-bold text-white"
               >
-                <Pencil size={16} /> Edit order
+                <Pencil size={16} className="shrink-0" />
+                Edit order
               </button>
             )}
             {!readOnly && order.prepStatus !== 'dispatched' && order.prepStatus !== 'cancelled' && (
-              <button type="button" onClick={() => setPrepStatus(order.id, next)} className="h-12 flex-1 rounded-2xl bg-ink font-bold text-white">
+              <button
+                type="button"
+                onClick={() => setPrepStatus(order.id, next)}
+                className="inline-flex h-12 w-full items-center justify-center whitespace-nowrap rounded-2xl bg-ink px-3 text-sm font-bold text-white"
+              >
                 Move to {prepLabel(next)}
               </button>
             )}
@@ -113,13 +119,18 @@ export default function OrderDrawer({ order, onClose, readOnly = false }) {
                   onClose()
                   navigate('/')
                 }}
-                className="h-12 flex-1 rounded-2xl bg-orange-500 font-bold text-white"
+                className="inline-flex h-12 w-full items-center justify-center whitespace-nowrap rounded-2xl bg-orange-500 px-3 text-sm font-bold text-white"
               >
                 Take payment
               </button>
             )}
             {!readOnly && canCancel && (
-              <button type="button" disabled={busy} onClick={onCancel} className="h-12 w-full rounded-2xl bg-red-500/10 font-bold text-red-600 disabled:opacity-60">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={onCancel}
+                className="col-span-2 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-red-500/10 text-sm font-bold text-red-600 disabled:opacity-60"
+              >
                 Cancel order
               </button>
             )}

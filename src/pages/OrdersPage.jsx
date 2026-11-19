@@ -212,34 +212,61 @@ export default function OrdersPage({ source = 'today' }) {
 function OrderCard({ order, onOpen, onStatus, onPay, onEdit, readOnly, canEdit }) {
   const canPay = !readOnly && order.paymentStatus !== 'paid' && order.prepStatus !== 'cancelled'
   const items = order.items || []
-  const statusTone = {
-    new: 'bg-orange-500',
-    preparing: 'bg-amber-500',
-    ready: 'bg-emerald-500',
-    dispatched: 'bg-stone-500',
-    cancelled: 'bg-red-500',
-  }[order.prepStatus] || 'bg-stone-400'
+  const tone = {
+    new: {
+      header: 'bg-orange-100 text-orange-900',
+      footer: 'bg-orange-50',
+      dot: 'bg-orange-400',
+    },
+    preparing: {
+      header: 'bg-amber-100 text-amber-950',
+      footer: 'bg-amber-50',
+      dot: 'bg-amber-400',
+    },
+    ready: {
+      header: 'bg-emerald-100 text-emerald-950',
+      footer: 'bg-emerald-50',
+      dot: 'bg-emerald-400',
+    },
+    dispatched: {
+      header: 'bg-stone-200 text-stone-800',
+      footer: 'bg-stone-100',
+      dot: 'bg-stone-400',
+    },
+    cancelled: {
+      header: 'bg-red-100 text-red-900',
+      footer: 'bg-red-50',
+      dot: 'bg-red-400',
+    },
+  }[order.prepStatus] || {
+    header: 'bg-stone-200 text-stone-800',
+    footer: 'bg-stone-100',
+    dot: 'bg-stone-400',
+  }
 
   return (
     <motion.article
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col rounded-2xl bg-surface p-3 text-left shadow-card"
+      className="flex flex-col overflow-hidden rounded-2xl bg-surface text-left shadow-card"
     >
-      <button type="button" onClick={onOpen} className="w-full text-left">
+      <button type="button" onClick={onOpen} className={`w-full px-3 py-2.5 text-left ${tone.header}`}>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="truncate text-base font-extrabold leading-none">{orderLabel(order)}</p>
-            <p className="mt-1 truncate text-sm font-semibold">{order.customer || 'Walk-in'}</p>
+            <p className="mt-1 truncate text-sm font-semibold opacity-80">{order.customer || 'Walk-in'}</p>
           </div>
           <p className="shrink-0 text-sm font-extrabold">{pkr(order.amount)}</p>
         </div>
         <div className="mt-2 flex flex-wrap gap-1">
-          <Badge tone={order.paymentStatus}>{order.paymentStatus}</Badge>
-          <span className="rounded-full bg-soft px-2 py-0.5 text-[10px] font-bold uppercase">{typeLabel(order.type)}</span>
+          <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-bold uppercase">{order.paymentStatus}</span>
+          <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-bold uppercase">{typeLabel(order.type)}</span>
         </div>
-        <ul className="mt-2 space-y-1">
+      </button>
+
+      <button type="button" onClick={onOpen} className="w-full px-3 py-2.5 text-left">
+        <ul className="space-y-1">
           {items.slice(0, 4).map((item) => (
             <li key={item.id} className="truncate text-xs font-semibold text-ink">
               {item.qty} × {item.name}
@@ -258,13 +285,13 @@ function OrderCard({ order, onOpen, onStatus, onPay, onEdit, readOnly, canEdit }
       </button>
 
       {!readOnly && order.prepStatus !== 'cancelled' && (
-        <div className="mt-3 flex items-center justify-between gap-2 rounded-2xl bg-[#eef1fb] px-2 py-2">
+        <div className={`flex items-center justify-between gap-2 px-2 py-2 ${tone.footer}`}>
           <label className="relative inline-flex min-w-0 flex-1">
-            <span className={`pointer-events-none absolute left-3 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${statusTone}`} />
+            <span className={`pointer-events-none absolute left-3 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${tone.dot}`} />
             <select
               value={order.prepStatus}
               onChange={(event) => onStatus(event.target.value)}
-              className="h-10 w-full appearance-none rounded-xl border border-white bg-white pl-7 pr-8 text-xs font-bold text-ink shadow-sm outline-none"
+              className="h-10 w-full appearance-none rounded-xl border border-white/80 bg-white pl-7 pr-8 text-xs font-bold text-ink shadow-sm outline-none"
               aria-label="Change status"
             >
               {statusOptions.map((item) => (
@@ -274,13 +301,13 @@ function OrderCard({ order, onOpen, onStatus, onPay, onEdit, readOnly, canEdit }
           </label>
           <div className="flex shrink-0 items-center gap-1.5">
             {canPay && (
-              <button type="button" aria-label="Take payment" onClick={onPay} className="grid h-10 w-10 place-items-center rounded-xl border border-white bg-white text-ink shadow-sm">
+              <button type="button" aria-label="Take payment" onClick={onPay} className="grid h-10 w-10 place-items-center rounded-xl bg-orange-500 text-white shadow-sm">
                 <CreditCard size={16} />
               </button>
             )}
-            <PrintInvoiceMenu order={order} />
+            <PrintInvoiceMenu order={order} buttonClassName="grid h-10 w-10 place-items-center rounded-xl bg-ink text-white shadow-sm" />
             {canEdit && (
-              <button type="button" aria-label="Edit order" onClick={onEdit} className="grid h-10 w-10 place-items-center rounded-xl border border-white bg-white text-ink shadow-sm">
+              <button type="button" aria-label="Edit order" onClick={onEdit} className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600 text-white shadow-sm">
                 <Pencil size={16} />
               </button>
             )}

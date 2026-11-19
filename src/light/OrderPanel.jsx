@@ -1,4 +1,4 @@
-import { Bike, Percent, Printer, Save, Table2, UserRound, X } from 'lucide-react'
+import { Bike, Percent, Printer, Save, Table2, Trash2, UserRound, X } from 'lucide-react'
 import { summarize, usePos } from '../context/PosContext'
 import Button from './Button'
 import CartItem from './CartItem'
@@ -6,7 +6,7 @@ import Chip from './Chip'
 import OrderSummary from './OrderSummary'
 import TotalBar from './TotalBar'
 
-export default function OrderPanel({ payMethod, onEdit, onCustomer, onTable, onRider, onMenu, onMethod, onSave, onPrint, onDiscount, onPayNow, onPayLater, onSaveEdit, onCancelEdit }) {
+export default function OrderPanel({ payMethod, onEdit, onCustomer, onTable, onRider, onMenu, onMethod, onSave, onPrint, onDiscount, onClear, onPayNow, onPayLater, onSaveEdit, onCancelEdit }) {
   const { cart, updateCart, setOrderType, setQty, removeLine, paymentTypes, tables, riders, orderTypes, orderChannel, taxInclusive, editingOrder } = usePos()
   const selectedPayment = paymentTypes.find((item) => item.id === cart.paymentTypeId)
     || paymentTypes.find((item) => item.kind === payMethod || item.id === payMethod)
@@ -28,6 +28,14 @@ export default function OrderPanel({ payMethod, onEdit, onCustomer, onTable, onR
         <h2 className="text-base font-semibold">{editing ? `Edit ${editingOrder.orderNumber}` : 'New order'}</h2>
         <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-xs text-[var(--pos-muted)]">
           <span className="shrink-0">{countLabel}</span>
+          <button
+            type="button"
+            onClick={onClear}
+            className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-[var(--pos-border)] bg-white px-2.5 text-[11px] font-semibold text-[var(--pos-text)] active:bg-[#eef3fb]"
+          >
+            <Trash2 size={13} />
+            Clear
+          </button>
           <button type="button" aria-label="Order menu" onClick={onMenu} className="grid h-8 w-8 shrink-0 place-items-center rounded-full active:bg-[#eef3fb]">···</button>
         </div>
       </div>

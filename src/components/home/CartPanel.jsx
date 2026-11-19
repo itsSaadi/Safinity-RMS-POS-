@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Bike, Minus, Pencil, Plus, ShoppingBag, Trash2, UtensilsCrossed, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { usePos, summarize } from '../../context/PosContext'
 import { lineMeta, pkr } from '../../utils/format'
 import FoodImage from '../ui/FoodImage'
@@ -14,6 +15,7 @@ const icons = {
 }
 
 export default function CartPanel({ onEdit, onCheckout, onClose, mobile }) {
+  const navigate = useNavigate()
   const { cart, updateCart, setOrderType, setQty, removeLine, clearCart, riders, tables, waiters, zones, orderTypes, orderChannel, toast, paymentTypes, taxInclusive, editingOrder, saveEditedOrder, cancelEditOrder } = usePos()
   const serviceTypes = orderTypes
   const selectedPayment = paymentTypes.find((item) => item.id === cart.paymentTypeId)
@@ -199,6 +201,7 @@ export default function CartPanel({ onEdit, onCheckout, onClose, mobile }) {
                 try {
                   await saveEditedOrder({ method: 'later', paymentTypeId: cart.paymentTypeId })
                   onClose?.()
+                  navigate('/orders')
                 } catch (error) {
                   toast(error.message || 'Could not save order', 'bad')
                 }

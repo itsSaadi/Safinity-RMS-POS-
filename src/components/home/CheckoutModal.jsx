@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Banknote, Check, CreditCard, Smartphone, Wallet, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { summarize, usePos } from '../../context/PosContext'
 import { lineMeta, orderLabel, pkr } from '../../utils/format'
 import { INVOICE_TYPES, printInvoice } from '../../utils/printInvoice'
@@ -8,7 +9,9 @@ import Overlay from '../ui/Overlay'
 const quickCash = [1000, 2000, 5000]
 
 export default function CheckoutModal({ onClose }) {
-  const { cart, placeOrder, paymentTypes, updateCart, taxInclusive, orderChannel, user, branchLabel, toast } = usePos()
+  const navigate = useNavigate()
+  const { cart, placeOrder, paymentTypes, updateCart, taxInclusive, orderChannel, user, branchLabel, toast, editingOrder } = usePos()
+  const editing = Boolean(editingOrder?.id)
   const selectedPayment = paymentTypes.find((item) => item.id === cart.paymentTypeId)
     || paymentTypes.find((item) => item.kind === (paymentTypes[0]?.kind))
     || paymentTypes[0]
@@ -78,7 +81,13 @@ export default function CheckoutModal({ onClose }) {
     }
     setBusy(true)
     try {
+      const wasEditing = editing
       const order = await placeOrder({ ...payment, wallet, txn })
+      if (wasEditing) {
+        onClose?.()
+        navigate('/orders')
+        return
+      }
       setDone({ ...order, change, wallet, txn, creditName })
     } catch (error) {
       setError(error.message || 'The order did not reach Orra')

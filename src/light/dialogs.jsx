@@ -544,7 +544,9 @@ function CalcRow({ label, value }) {
 }
 
 function PayDialog({ close, payMethod, setPayMethod, take }) {
-  const { cart, placeOrder, toast, paymentTypes, updateCart, taxInclusive, user, branchLabel } = usePos()
+  const navigate = useNavigate()
+  const { cart, placeOrder, toast, paymentTypes, updateCart, taxInclusive, user, branchLabel, editingOrder } = usePos()
+  const editing = Boolean(editingOrder?.id)
   const payNowMethods = paymentTypes.filter((item) => item.kind !== 'later')
   const [method, setMethod] = useState(payMethod === 'later' && take ? 'later' : (payMethod && payMethod !== 'later' ? payMethod : payNowMethods[0]?.kind || 'cash'))
   const [paymentTypeId, setPaymentTypeId] = useState(() => {
@@ -636,7 +638,13 @@ function PayDialog({ close, payMethod, setPayMethod, take }) {
     }
     setBusy(true)
     try {
+      const wasEditing = editing
       const order = await placeOrder({ ...payment, wallet, txn })
+      if (wasEditing) {
+        close()
+        navigate('/orders')
+        return
+      }
       setDone({ ...order, change })
     } catch (err) {
       setError(err.message || 'Payment did not go through')

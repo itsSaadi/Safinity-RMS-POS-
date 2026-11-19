@@ -65,13 +65,13 @@ export default function LightCounter() {
   }
 
   return (
-    <div className="pos-light flex h-full min-h-0 flex-col">
+    <div className="pos-light flex h-dvh min-h-0 flex-col">
       <TopBar
         onBack={() => navigate('/more')}
         onNew={() => (cart.lines.length ? openDialog('clear') : toast('The ticket is already empty'))}
-        onHistory={() => openDialog('history')}
-        onPending={() => openDialog('pending')}
-        onClear={() => (cart.lines.length ? openDialog('clear') : toast('Nothing to clear'))}
+        onOrders={() => navigate('/orders')}
+        onKitchen={() => navigate('/kitchen')}
+        onMore={() => navigate('/more')}
         onShift={() => openDialog('shift')}
         onBell={() => openDialog('bell')}
         onMenu={() => openDialog('nav')}
@@ -88,6 +88,7 @@ export default function LightCounter() {
           onSave={() => openDialog('save')}
           onPrint={() => openDialog('print')}
           onDiscount={() => openDialog('discount')}
+          onClear={() => (cart.lines.length ? openDialog('clear') : toast('Nothing to clear'))}
           onPayNow={() => {
             if (payMethod === 'later') setPayMethod('cash')
             openDialog('pay')
@@ -99,6 +100,7 @@ export default function LightCounter() {
           onSaveEdit={async () => {
             try {
               await saveEditedOrder({ method: 'later', paymentTypeId: cart.paymentTypeId })
+              navigate('/orders')
             } catch (error) {
               toast(error.message || 'Could not save order', 'bad')
             }
