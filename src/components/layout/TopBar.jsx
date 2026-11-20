@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { employee, restaurant } from '../../data/catalog'
 import { notifications } from '../../data/seed'
 import { usePos } from '../../context/PosContext'
+import { useLayout } from '../../layoutPref'
 import { formatClock, formatDate } from '../../utils/format'
 
 const links = [
@@ -24,6 +25,7 @@ function linkActive(path, link) {
 
 export default function TopBar() {
   const { theme, setTheme, signOut, user, branchLabel, refreshDesk, refreshing } = usePos()
+  const lightBar = useLayout() === 'light' && theme !== 'dark'
   const person = user?.name || employee.name
   const role = user?.role_name || employee.role
   const initials = person.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()
@@ -48,15 +50,15 @@ export default function TopBar() {
   }
 
   return (
-    <header className="relative z-40 grid h-14 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-3 bg-nav px-3 text-white md:px-4">
+    <header className={`relative z-40 grid h-14 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-3 px-3 md:px-4 ${lightBar ? 'border-b border-line bg-white/85 text-ink backdrop-blur-md' : 'bg-nav text-white'}`}>
       <div className="flex items-center gap-2">
-        <span className="grid h-9 w-9 place-items-center rounded-xl bg-orange-500 font-display text-xl">O</span>
+        <span className="grid h-9 w-9 place-items-center rounded-xl bg-orange-500 font-display text-xl text-white">O</span>
         <div className="leading-tight">
           <p className="font-display text-lg tracking-tight">{restaurant.name}</p>
-          <p className="text-[10px] uppercase tracking-[0.22em] text-white/45">Restaurant POS</p>
+          <p className={`text-[10px] uppercase tracking-[0.22em] ${lightBar ? 'text-muted' : 'text-white/45'}`}>Restaurant POS</p>
         </div>
-        <div className="ml-1 hidden items-center gap-2 rounded-full bg-white/8 px-3 py-2 text-sm text-white/80 lg:flex">
-          <MapPin size={15} className="text-orange-400" />
+        <div className={`ml-1 hidden items-center gap-2 rounded-full px-3 py-2 text-sm lg:flex ${lightBar ? 'border border-line bg-white text-ink' : 'bg-white/8 text-white/80'}`}>
+          <MapPin size={15} className={lightBar ? 'text-orange-600' : 'text-orange-400'} />
           {branchLabel || restaurant.branch}
         </div>
       </div>
@@ -68,7 +70,7 @@ export default function TopBar() {
             <NavLink
               key={link.to}
               to={link.to}
-              className={`relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${isActive ? 'text-white' : 'text-white/65 hover:text-white'}`}
+              className={`relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${isActive ? 'text-white' : lightBar ? 'text-muted hover:text-ink' : 'text-white/65 hover:text-white'}`}
             >
               {isActive && (
                 <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-full bg-orange-500" transition={{ type: 'spring', stiffness: 380, damping: 32 }} />
@@ -83,33 +85,33 @@ export default function TopBar() {
       <div className="flex items-center justify-self-end gap-1.5 md:gap-2">
         <div className="hidden text-right xl:block">
           <p className="text-sm font-semibold">{formatClock(now)}</p>
-          <p className="text-[11px] text-white/50">{formatDate(now)}</p>
+          <p className={`text-[11px] ${lightBar ? 'text-muted' : 'text-white/50'}`}>{formatDate(now)}</p>
         </div>
-        <span className="hidden rounded-full bg-orange-500/15 px-3 py-1.5 text-xs font-bold text-orange-300 md:inline-flex">
+        <span className={`hidden rounded-full px-3 py-1.5 text-xs font-bold md:inline-flex ${lightBar ? 'bg-orange-500/10 text-orange-700' : 'bg-orange-500/15 text-orange-300'}`}>
           {employee.shift} shift
         </span>
         <span className="hidden items-center gap-2 rounded-full px-2 text-xs font-semibold text-emerald-300 md:inline-flex">
           <Wifi size={15} />
           Ready
         </span>
-        <IconButton label="Refresh menu" onClick={() => refreshDesk()} disabled={refreshing}>
+        <IconButton light={lightBar} label="Refresh menu" onClick={() => refreshDesk()} disabled={refreshing}>
           <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
         </IconButton>
-        <IconButton label="Notifications" onClick={() => setOpen(open === 'bell' ? null : 'bell')}>
+        <IconButton light={lightBar} label="Notifications" onClick={() => setOpen(open === 'bell' ? null : 'bell')}>
           <Bell size={18} />
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-orange-500" />
         </IconButton>
-        <IconButton label={full ? 'Exit fullscreen' : 'Fullscreen'} onClick={toggleFull}>
+        <IconButton light={lightBar} label={full ? 'Exit fullscreen' : 'Fullscreen'} onClick={toggleFull}>
           {full ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
         </IconButton>
-        <IconButton label="Theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+        <IconButton light={lightBar} label="Theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </IconButton>
-        <button type="button" onClick={() => setOpen(open === 'profile' ? null : 'profile')} className="ml-1 flex items-center gap-2 rounded-full bg-white/8 py-1 pl-1 pr-3">
+        <button type="button" onClick={() => setOpen(open === 'profile' ? null : 'profile')} className={`ml-1 flex items-center gap-2 rounded-full py-1 pl-1 pr-3 ${lightBar ? 'border border-line bg-white' : 'bg-white/8'}`}>
           <span className="grid h-9 w-9 place-items-center rounded-full bg-orange-500 text-sm font-bold">{initials}</span>
           <span className="hidden text-left leading-tight sm:block">
             <span className="block text-sm font-semibold">{person}</span>
-            <span className="block text-[11px] text-white/50">{role}</span>
+            <span className={`block text-[11px] ${lightBar ? 'text-muted' : 'text-white/50'}`}>{role}</span>
           </span>
         </button>
       </div>
@@ -145,7 +147,7 @@ export default function TopBar() {
                   setOpen(null)
                   await signOut()
                 }}
-                className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#111827] text-sm font-extrabold text-white"
+                className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-nav text-sm font-extrabold text-white"
               >
                 <LogOut size={16} />
                 Log out
@@ -158,9 +160,9 @@ export default function TopBar() {
   )
 }
 
-function IconButton({ children, label, onClick, disabled }) {
+function IconButton({ children, label, onClick, disabled, light }) {
   return (
-    <button type="button" aria-label={label} onClick={onClick} disabled={disabled} className="relative grid h-9 w-9 place-items-center rounded-full text-white/85 hover:bg-white/10 disabled:opacity-50">
+    <button type="button" aria-label={label} onClick={onClick} disabled={disabled} className={`relative grid h-9 w-9 place-items-center rounded-full disabled:opacity-50 ${light ? 'text-ink/80 hover:bg-soft' : 'text-white/85 hover:bg-white/10'}`}>
       {children}
     </button>
   )
@@ -184,15 +186,17 @@ function Panel({ children, onClose }) {
 
 export function BottomNav() {
   const location = useLocation()
+  const { theme } = usePos()
+  const lightBar = useLayout() === 'light' && theme !== 'dark'
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-white/10 bg-nav px-2 py-2 text-white lg:hidden">
+    <nav className={`fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 px-2 py-2 lg:hidden ${lightBar ? 'border-t border-line bg-white/95 text-ink backdrop-blur' : 'border-t border-white/10 bg-nav text-white'}`}>
       {links.map((link) => {
         const isActive = linkActive(location.pathname, link)
         return (
           <NavLink
             key={link.to}
             to={link.to}
-            className={`flex flex-col items-center gap-1 rounded-2xl py-1 text-[11px] font-semibold ${isActive ? 'text-orange-400' : 'text-white/60'}`}
+            className={`flex flex-col items-center gap-1 rounded-2xl py-1 text-[11px] font-semibold ${isActive ? (lightBar ? 'text-orange-600' : 'text-orange-400') : lightBar ? 'text-muted' : 'text-white/60'}`}
           >
             <link.icon size={18} />
             {link.label === 'Today Orders' ? 'Orders' : link.label}

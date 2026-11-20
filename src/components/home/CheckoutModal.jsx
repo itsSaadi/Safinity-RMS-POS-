@@ -5,12 +5,13 @@ import { summarize, usePos } from '../../context/PosContext'
 import { lineMeta, orderLabel, pkr } from '../../utils/format'
 import { INVOICE_TYPES, printInvoice } from '../../utils/printInvoice'
 import Overlay from '../ui/Overlay'
+import DealLines from '../ui/DealLines'
 
 const quickCash = [1000, 2000, 5000]
 
 export default function CheckoutModal({ onClose }) {
   const navigate = useNavigate()
-  const { cart, placeOrder, paymentTypes, updateCart, taxInclusive, orderChannel, user, branchLabel, toast, editingOrder } = usePos()
+  const { cart, placeOrder, paymentTypes, updateCart, taxInclusive, orderChannel, user, branchLabel, toast, editingOrder, productById } = usePos()
   const editing = Boolean(editingOrder?.id)
   const selectedPayment = paymentTypes.find((item) => item.id === cart.paymentTypeId)
     || paymentTypes.find((item) => item.kind === (paymentTypes[0]?.kind))
@@ -97,7 +98,7 @@ export default function CheckoutModal({ onClose }) {
   }
 
   if (done) {
-    const printCtx = { user, branchLabel, restaurant: user?.restaurant || {} }
+    const printCtx = { user, branchLabel, restaurant: user?.restaurant || {}, productById }
     return (
       <Overlay onClose={onClose} className="max-w-lg rounded-[32px]">
         <div className="p-6">
@@ -165,6 +166,7 @@ export default function CheckoutModal({ onClose }) {
                 <div>
                   <p className="font-bold">{line.qty} × {line.name}</p>
                   {lineMeta(line) && <p className="text-xs text-muted">{lineMeta(line)}</p>}
+                  <DealLines source={line} className="mt-0.5 space-y-0.5 text-xs text-muted" />
                 </div>
                 <p className="font-bold">{pkr(line.unitPrice * line.qty)}</p>
               </div>

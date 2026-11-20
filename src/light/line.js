@@ -1,3 +1,5 @@
+import { dealContents } from '../utils/format'
+
 function activeGroups(product, variation) {
   return [...(product.choiceGroups || []), ...((variation?.choiceGroups) || [])]
 }
@@ -36,6 +38,7 @@ export function buildLine(product, draft = {}) {
     instructions: (draft.instructions || '').trim(),
     qty: draft.qty || 1,
     unitPrice,
+    dealLines: dealContents(product),
   }
 }
 

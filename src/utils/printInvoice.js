@@ -1,4 +1,4 @@
-import { formatTime, lineMeta, orderLabel, typeLabel } from './format'
+import { dealContents, formatTime, lineMeta, orderLabel, typeLabel } from './format'
 
 function money(value) {
   const amount = Math.round(Number(value) || 0)
@@ -52,6 +52,7 @@ function itemLinesHtml(order, { showPrice }) {
     const meta = lineMeta(item)
     const note = item.instructions ? `<div class="note">Note: ${esc(item.instructions)}</div>` : ''
     const sub = meta ? `<div class="sub">${esc(meta)}</div>` : ''
+    const inside = (item.dealLines || []).map((line) => `<div class="sub">${esc(line.qty)} x ${esc(line.label)}</div>`).join('')
     const qtyPrice = showPrice
       ? `<div class="qty">(${esc(item.qty)}x) ${money(item.unitPrice * item.qty)}</div>`
       : `<div class="qty">${esc(item.qty)} ×</div>`
@@ -62,6 +63,7 @@ function itemLinesHtml(order, { showPrice }) {
           ${showPrice ? '' : qtyPrice}
         </div>
         ${sub}
+        ${inside}
         ${showPrice ? qtyPrice : ''}
         ${note}
       </div>
@@ -252,6 +254,20 @@ function buildKitchenHtml(order, ctx) {
   `)
 }
 
+function attachDealLines(order, ctx) {
+  if (typeof ctx.productById !== 'function') return order
+  return {
+    ...order,
+    items: (order.items || []).map((item) => {
+      const own = dealContents(item)
+      return {
+        ...item,
+        dealLines: own.length ? own : dealContents(ctx.productById(item.productId)),
+      }
+    }),
+  }
+}
+
 export const INVOICE_TYPES = [
   { id: 'customer', label: 'Customer invoice' },
   { id: 'provision', label: 'Provision invoice' },
@@ -260,11 +276,12 @@ export const INVOICE_TYPES = [
 
 export function printInvoice(type, order, ctx = {}) {
   if (!order) throw new Error('No order to print')
+  const detailed = attachDealLines(order, ctx)
 
   let html = ''
-  if (type === 'kitchen') html = buildKitchenHtml(order, ctx)
-  else if (type === 'provision') html = buildProvisionHtml(order, ctx)
-  else html = buildCustomerHtml(order, ctx)
+  if (type === 'kitchen') html = buildKitchenHtml(detailed, ctx)
+  else if (type === 'provision') html = buildProvisionHtml(detailed, ctx)
+  else html = buildCustomerHtml(detailed, ctx)
 
   // Blob URL avoids blank about:blank windows (document.write + noopener issues).
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' })

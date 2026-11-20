@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Minus, Plus, X } from 'lucide-react'
 import { categoryName } from '../../data/catalog'
-import { pkr } from '../../utils/format'
+import { dealContents, pkr } from '../../utils/format'
+import DealLines from '../ui/DealLines'
 import FoodImage from '../ui/FoodImage'
 import Overlay from '../ui/Overlay'
 
@@ -54,6 +55,7 @@ export default function CustomizeModal({ product, line, onClose, onSave }) {
       instructions: instructions.trim(),
       qty,
       unitPrice,
+      dealLines: dealContents(product),
     })
   }
 
@@ -66,6 +68,7 @@ export default function CustomizeModal({ product, line, onClose, onSave }) {
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted">{product.categoryName || categoryName(product.category)} · {product.code}</p>
               <h2 className="font-display text-2xl leading-none">{product.name}</h2>
+              <DealLines source={product} className="mt-2 space-y-0.5 text-sm font-semibold text-ink" />
               <p className="mt-2 text-sm text-muted">{product.description}</p>
             </div>
             <button type="button" aria-label="Close" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-soft"><X size={18} /></button>

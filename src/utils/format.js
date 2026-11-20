@@ -47,6 +47,21 @@ export function lineMeta(line) {
   return [line.variation, ...(line.choices || []), ...(line.addons || [])].filter(Boolean).join(' · ')
 }
 
+/** Included items on a deal. Prices on those rows are ignored. */
+export function dealContents(source) {
+  if (!source) return []
+  const ready = Array.isArray(source.dealLines) ? source.dealLines : null
+  const rows = ready?.length ? ready : (source.dealItems || [])
+  return rows.map((row) => {
+    const qty = Math.max(1, Number(row.qty ?? row.quantity) || 1)
+    const variation = row.variation?.name || (typeof row.variation === 'string' ? row.variation : '')
+    const base = String(row.label || row.name || '').trim()
+    if (!base) return null
+    const label = variation && !base.includes(`(${variation})`) ? `${base} (${variation})` : base
+    return { qty, label }
+  }).filter(Boolean)
+}
+
 /** Human ticket label — never a Mongo ObjectId / UUID. */
 export function orderLabel(order) {
   const number = String(order?.orderNumber || '').trim()

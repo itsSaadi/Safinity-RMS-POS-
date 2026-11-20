@@ -16,6 +16,9 @@
       if (sessionStorage.getItem('orra-theme') === 'dark') {
         document.documentElement.classList.add('dark')
       }
+      if (sessionStorage.getItem('orra-layout') !== 'classic') {
+        document.documentElement.classList.add('theme-blue')
+      }
     } catch (e) { }
   </script>
 </head>

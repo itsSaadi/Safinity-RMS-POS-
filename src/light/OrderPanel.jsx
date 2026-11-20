@@ -44,14 +44,14 @@ export default function OrderPanel({ payMethod, onEdit, onCustomer, onTable, onR
           <button
             type="button"
             onClick={onTable}
-            className={`inline-flex h-9 max-w-full items-center gap-1.5 rounded-full border px-3 text-[11px] font-semibold ${selectedTable ? 'border-[var(--pos-accent)] bg-[#eef5ff] text-[var(--pos-text)]' : 'border-[var(--pos-border)] text-[var(--pos-text)] active:bg-[#eef3fb]'}`}
+            className={`inline-flex h-9 max-w-full items-center gap-1.5 rounded-full border px-3 text-[11px] font-semibold ${selectedTable ? 'border-[var(--pos-accent)] bg-[#f1f5f9] text-[var(--pos-text)]' : 'border-[var(--pos-border)] text-[var(--pos-text)] active:bg-[#eef3fb]'}`}
           >
             <Table2 size={15} className="shrink-0" />
             <span className="max-w-[10rem] truncate sm:max-w-[14rem]">{tableLabel}</span>
           </button>
         )}
         {orderChannel === 'delivery' && (
-          <div className={`inline-flex h-9 max-w-full items-center gap-1 rounded-full border py-0 pl-3 ${selectedRider || cart.rider ? 'border-[var(--pos-accent)] bg-[#eef5ff] pr-1' : 'border-[var(--pos-border)] pr-3'}`}>
+          <div className={`inline-flex h-9 max-w-full items-center gap-1 rounded-full border py-0 pl-3 ${selectedRider || cart.rider ? 'border-[var(--pos-accent)] bg-[#f1f5f9] pr-1' : 'border-[var(--pos-border)] pr-3'}`}>
             <button
               type="button"
               onClick={onRider}
@@ -72,7 +72,7 @@ export default function OrderPanel({ payMethod, onEdit, onCustomer, onTable, onR
             ) : null}
           </div>
         )}
-        <div className={`inline-flex h-9 max-w-full items-center gap-1 rounded-full border py-0 pl-3 ${customerLabel ? 'border-[var(--pos-accent)] bg-[#eef5ff] pr-1' : 'border-[var(--pos-border)] pr-3'}`}>
+        <div className={`inline-flex h-9 max-w-full items-center gap-1 rounded-full border py-0 pl-3 ${customerLabel ? 'border-[var(--pos-accent)] bg-[#f1f5f9] pr-1' : 'border-[var(--pos-border)] pr-3'}`}>
           <button
             type="button"
             onClick={onCustomer}

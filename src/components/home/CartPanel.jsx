@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { usePos, summarize } from '../../context/PosContext'
 import { lineMeta, pkr } from '../../utils/format'
 import FoodImage from '../ui/FoodImage'
+import DealLines from '../ui/DealLines'
 
 const icons = {
   'dine-in': UtensilsCrossed,
@@ -147,6 +148,7 @@ export default function CartPanel({ onEdit, onCheckout, onClose, mobile }) {
                   <p className="shrink-0 text-sm font-extrabold">{pkr(line.unitPrice * line.qty)}</p>
                 </div>
                 {lineMeta(line) && <p className="truncate text-xs text-muted">{lineMeta(line)}</p>}
+                <DealLines source={line} className="mt-0.5 space-y-0.5 text-xs text-muted" />
                 {line.instructions && <p className="truncate text-xs italic text-orange-600">“{line.instructions}”</p>}
                 <div className="mt-2 flex items-center gap-1.5">
                   <Stepper value={line.qty} onChange={(qty) => setQty(line.id, qty)} />

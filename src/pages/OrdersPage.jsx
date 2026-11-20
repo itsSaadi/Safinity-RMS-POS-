@@ -6,6 +6,7 @@ import { channelFromOrderCode } from '../api'
 import { usePos } from '../context/PosContext'
 import { formatTime, itemsLabel, orderLabel, pkr, prepLabel, sameDay, typeLabel } from '../utils/format'
 import Badge from '../components/ui/Badge'
+import DealLines from '../components/ui/DealLines'
 import OrderDrawer from '../components/orders/OrderDrawer'
 import PrintInvoiceMenu from '../components/orders/PrintInvoiceMenu'
 
@@ -210,6 +211,7 @@ export default function OrdersPage({ source = 'today' }) {
 }
 
 function OrderCard({ order, onOpen, onStatus, onPay, onEdit, readOnly, canEdit }) {
+  const { productById } = usePos()
   const canPay = !readOnly && order.paymentStatus !== 'paid' && order.prepStatus !== 'cancelled'
   const items = order.items || []
   const tone = {
@@ -268,9 +270,12 @@ function OrderCard({ order, onOpen, onStatus, onPay, onEdit, readOnly, canEdit }
       <button type="button" onClick={onOpen} className="w-full px-3 py-2.5 text-left">
         <ul className="space-y-1">
           {items.slice(0, 4).map((item) => (
-            <li key={item.id} className="truncate text-xs font-semibold text-ink">
-              {item.qty} × {item.name}
-              {lineMetaShort(item) ? <span className="font-medium text-muted"> · {lineMetaShort(item)}</span> : null}
+            <li key={item.id} className="text-xs font-semibold text-ink">
+              <p className="truncate">
+                {item.qty} × {item.name}
+                {lineMetaShort(item) ? <span className="font-medium text-muted"> · {lineMetaShort(item)}</span> : null}
+              </p>
+              <DealLines source={productById(item.productId) || item} className="mt-0.5 space-y-0.5 text-[11px] font-medium text-muted" />
             </li>
           ))}
           {items.length > 4 && (
@@ -307,7 +312,7 @@ function OrderCard({ order, onOpen, onStatus, onPay, onEdit, readOnly, canEdit }
             )}
             <PrintInvoiceMenu order={order} buttonClassName="grid h-10 w-10 place-items-center rounded-xl bg-ink text-white shadow-sm" />
             {canEdit && (
-              <button type="button" aria-label="Edit order" onClick={onEdit} className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600 text-white shadow-sm">
+              <button type="button" aria-label="Edit order" onClick={onEdit} className="grid h-10 w-10 place-items-center rounded-xl bg-nav text-white shadow-sm">
                 <Pencil size={16} />
               </button>
             )}

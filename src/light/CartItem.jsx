@@ -1,6 +1,7 @@
 import { Pencil } from 'lucide-react'
 import { lineMeta } from '../utils/format'
 import { money } from './money'
+import DealLines from '../components/ui/DealLines'
 import QuantityStepper from './QuantityStepper'
 
 export default function CartItem({ line, onEdit, onQty, onRemove }) {
@@ -14,6 +15,7 @@ export default function CartItem({ line, onEdit, onQty, onRemove }) {
         </button>
         <p className="pt-2 text-base font-bold tabular-nums">{money(line.unitPrice * line.qty)}</p>
       </div>
+      <DealLines source={line} className="mt-1 space-y-0.5 text-xs text-[var(--pos-muted)]" />
       <div className="mt-1 flex items-center justify-between gap-3">
         <p className="min-w-0 text-xs text-[var(--pos-muted)]">
           {note || 'Standard'}

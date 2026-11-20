@@ -84,7 +84,7 @@ export default function TopBar({ onBack, onNew, onOrders, onKitchen, onMore, onS
             onClick={() => setProfileOpen((value) => !value)}
             className="flex h-12 items-center gap-2 rounded-full border border-[var(--pos-border)] bg-white/80 py-1 pl-1 pr-3 active:bg-white"
           >
-            <span className="grid h-10 w-10 place-items-center rounded-full bg-[var(--pos-accent,#2563eb)] text-sm font-bold text-white">
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-[var(--pos-accent,#1e293b)] text-sm font-bold text-white">
               {initials}
             </span>
             <span className="hidden max-w-[8rem] truncate text-left text-sm font-semibold text-[var(--pos-text)] sm:block">
@@ -101,7 +101,7 @@ export default function TopBar({ onBack, onNew, onOrders, onKitchen, onMore, onS
               >
                 <div className="p-4">
                   <div className="flex items-center gap-3">
-                    <span className="grid h-12 w-12 place-items-center rounded-full bg-[var(--pos-accent,#2563eb)] text-base font-bold text-white">
+                    <span className="grid h-12 w-12 place-items-center rounded-full bg-[var(--pos-accent,#1e293b)] text-base font-bold text-white">
                       {initials}
                     </span>
                     <div className="min-w-0">

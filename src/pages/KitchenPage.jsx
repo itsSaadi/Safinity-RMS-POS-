@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Bell, ChefHat } from 'lucide-react'
 import { usePos } from '../context/PosContext'
 import { elapsedLabel, lineMeta, orderLabel, typeLabel } from '../utils/format'
+import DealLines from '../components/ui/DealLines'
 
 const columns = [
   { id: 'new', title: 'New orders', action: 'Start', next: 'preparing', wash: 'bg-orange-100/80 dark:bg-orange-500/10', count: 'bg-orange-500 text-white' },
@@ -220,9 +221,10 @@ export default function KitchenPage() {
 }
 
 function Ticket({ order, now, station, action, onAdvance, onItem, dragging, onDragStart, onDragEnd }) {
+  const { productById } = usePos()
   const late = (order.prepStatus === 'new' || order.prepStatus === 'preparing') && now - order.createdAt > DELAY
   const items = station === 'All' ? order.items : order.items.filter((item) => item.station === station)
-  const buttonTone = action === 'Ready' ? 'bg-emerald-600' : action === 'Start' ? 'bg-orange-500' : 'bg-[#111827]'
+  const buttonTone = action === 'Ready' ? 'bg-emerald-600' : action === 'Start' ? 'bg-orange-500' : 'bg-nav'
   return (
     <motion.article
       layout
@@ -236,7 +238,7 @@ function Ticket({ order, now, station, action, onAdvance, onItem, dragging, onDr
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: dragging ? 0.45 : 1, y: 0 }}
       exit={{ opacity: 0 }}
-      className={`cursor-grab rounded-xl border bg-white px-2.5 py-2 text-[#1c1917] shadow-card active:cursor-grabbing dark:bg-[#241c16] dark:text-[#f6efe6] ${late ? 'border-red-400' : order.prepStatus === 'ready' ? 'border-emerald-300' : 'border-white/80 dark:border-white/10'}`}
+      className={`cursor-grab rounded-xl border bg-surface px-2.5 py-2 text-ink shadow-card active:cursor-grabbing ${late ? 'border-red-400' : order.prepStatus === 'ready' ? 'border-emerald-300' : 'border-line'}`}
     >
       <div className="flex items-center justify-between gap-2">
         <p className="truncate text-sm font-extrabold leading-none">{orderLabel(order)}</p>
@@ -263,6 +265,7 @@ function Ticket({ order, now, station, action, onAdvance, onItem, dragging, onDr
             <div className="min-w-0 flex-1">
               <p className={`text-xs font-bold leading-4 ${item.ready ? 'text-stone-400 line-through' : ''}`}>{item.qty} × {item.name}</p>
               {lineMeta(item) && <p className="text-[10px] leading-4 text-stone-500">{lineMeta(item)}</p>}
+              <DealLines source={productById(item.productId) || item} className="space-y-0.5 text-[10px] font-semibold leading-4 text-stone-500" />
               {item.instructions && <p className="text-[10px] font-bold leading-4 text-orange-800 dark:text-orange-200">Note: {item.instructions}</p>}
               {item.station && <p className="text-[9px] font-bold uppercase leading-4 tracking-wide text-stone-400">{item.station}</p>}
             </div>

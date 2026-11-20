@@ -9,6 +9,7 @@ import { formatTime, itemsLabel, lineMeta, orderLabel, prepLabel } from '../util
 import { INVOICE_TYPES, printInvoice } from '../utils/printInvoice'
 import Button from './Button'
 import Chip from './Chip'
+import DealLines from '../components/ui/DealLines'
 import { buildLine } from './line'
 import Modal from './Modal'
 import { money } from './money'
@@ -263,7 +264,7 @@ function RiderDialog({ close }) {
                 onClick={() => pick(rider)}
                 className={`relative flex items-center gap-2.5 rounded-[10px] border px-2.5 py-2 text-left transition ${
                   selected
-                    ? 'border-[var(--pos-accent)] bg-[#eff6ff] shadow-[0_0_0_1px_var(--pos-accent)]'
+                    ? 'border-[var(--pos-accent)] bg-[#f1f5f9] shadow-[0_0_0_1px_var(--pos-accent)]'
                     : 'border-[var(--pos-border)] bg-white active:scale-[0.99] active:bg-[#f8fbff]'
                 }`}
               >
@@ -360,7 +361,7 @@ function TableDialog({ close }) {
                   onClick={() => pick(table)}
                   className={`relative flex min-h-[64px] flex-col items-start justify-between rounded-[10px] border px-2 py-1.5 text-left transition ${
                     selected
-                      ? 'border-[var(--pos-accent)] bg-[#eff6ff] shadow-[0_0_0_1px_var(--pos-accent)]'
+                      ? 'border-[var(--pos-accent)] bg-[#f1f5f9] shadow-[0_0_0_1px_var(--pos-accent)]'
                       : closed
                         ? 'cursor-not-allowed border-[var(--pos-border)] bg-[#f8fafc] opacity-55'
                         : meta.tone === 'busy'
@@ -460,6 +461,7 @@ function ItemDialog({ editor, close, onAdd, onUpdate }) {
       )}
     >
       <div className="space-y-4">
+        <DealLines source={product} className="space-y-0.5 text-sm text-[var(--pos-muted)]" />
         {product.variations.length > 0 && (
           <ChoiceRow label="Size">
             {product.variations.map((option) => (
@@ -510,7 +512,10 @@ function OrderCalc({ totals, lines = [] }) {
         <div className="max-h-40 space-y-1.5 overflow-y-auto pr-1">
           {lines.map((line) => (
             <div key={line.id} className="flex justify-between gap-3">
-              <span>{line.qty} × {line.name}{lineMeta(line) ? ` · ${lineMeta(line)}` : ''}</span>
+              <div className="min-w-0">
+                <p>{line.qty} × {line.name}{lineMeta(line) ? ` · ${lineMeta(line)}` : ''}</p>
+                <DealLines source={line} className="space-y-0.5 text-xs text-[var(--pos-muted)]" />
+              </div>
               <span className="font-semibold tabular-nums">{money(line.unitPrice * line.qty)}</span>
             </div>
           ))}
@@ -545,7 +550,7 @@ function CalcRow({ label, value }) {
 
 function PayDialog({ close, payMethod, setPayMethod, take }) {
   const navigate = useNavigate()
-  const { cart, placeOrder, toast, paymentTypes, updateCart, taxInclusive, user, branchLabel, editingOrder } = usePos()
+  const { cart, placeOrder, toast, paymentTypes, updateCart, taxInclusive, user, branchLabel, editingOrder, productById } = usePos()
   const editing = Boolean(editingOrder?.id)
   const payNowMethods = paymentTypes.filter((item) => item.kind !== 'later')
   const [method, setMethod] = useState(payMethod === 'later' && take ? 'later' : (payMethod && payMethod !== 'later' ? payMethod : payNowMethods[0]?.kind || 'cash'))
@@ -674,7 +679,7 @@ function PayDialog({ close, payMethod, setPayMethod, take }) {
   }
 
   if (done) {
-    const printCtx = { user, branchLabel, restaurant: user?.restaurant || {} }
+    const printCtx = { user, branchLabel, restaurant: user?.restaurant || {}, productById }
     return (
       <Modal
         title="Ticket sent"
@@ -837,7 +842,10 @@ function PrintDialog({ close }) {
         {cart.lines.length === 0 && <p className="text-[var(--pos-muted)]">Nothing to print yet.</p>}
         {cart.lines.map((line) => (
           <div key={line.id} className="flex justify-between gap-3">
-            <span>{line.qty} × {line.name}</span>
+            <div className="min-w-0">
+              <p>{line.qty} × {line.name}</p>
+              <DealLines source={line} className="space-y-0.5 text-xs text-[var(--pos-muted)]" />
+            </div>
             <span>{money(line.unitPrice * line.qty)}</span>
           </div>
         ))}

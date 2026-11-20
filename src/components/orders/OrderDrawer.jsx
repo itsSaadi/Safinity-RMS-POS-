@@ -5,12 +5,13 @@ import { useNavigate } from 'react-router-dom'
 import { usePos } from '../../context/PosContext'
 import { formatTime, lineMeta, orderLabel, pkr, prepLabel, typeLabel } from '../../utils/format'
 import Badge from '../ui/Badge'
+import DealLines from '../ui/DealLines'
 import PrintInvoiceMenu from './PrintInvoiceMenu'
 
 const flow = ['new', 'preparing', 'ready', 'dispatched']
 
 export default function OrderDrawer({ order, onClose, readOnly = false }) {
-  const { setPrepStatus, startCollect, cancelOrder, can, startEditOrder, canEditOrder } = usePos()
+  const { setPrepStatus, startCollect, cancelOrder, can, startEditOrder, canEditOrder, productById } = usePos()
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const next = flow[Math.min(flow.indexOf(order.prepStatus) + 1, flow.length - 1)]
@@ -69,6 +70,7 @@ export default function OrderDrawer({ order, onClose, readOnly = false }) {
                 <span>{pkr(item.unitPrice * item.qty)}</span>
               </div>
               {lineMeta(item) && <p className="text-xs text-muted">{lineMeta(item)}</p>}
+              <DealLines source={productById(item.productId) || item} className="mt-1 space-y-0.5 text-xs text-muted" />
               {item.instructions && <p className="text-xs italic text-orange-600">“{item.instructions}”</p>}
               {item.station && <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-muted">{item.station}</p>}
             </div>
@@ -96,7 +98,7 @@ export default function OrderDrawer({ order, onClose, readOnly = false }) {
                     navigate('/')
                   }
                 }}
-                className="inline-flex h-12 w-full items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-blue-600 px-3 text-sm font-bold text-white"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-nav px-3 text-sm font-bold text-white"
               >
                 <Pencil size={16} className="shrink-0" />
                 Edit order

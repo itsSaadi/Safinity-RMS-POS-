@@ -21,7 +21,7 @@ export default function TotalBar({ total, onPayNow, onPayLater, editing, onSaveE
           <button
             type="button"
             onClick={onSaveEdit}
-            className="inline-flex h-[56px] items-center justify-center gap-2 rounded-[var(--pos-radius)] bg-[var(--pos-accent,#2563eb)] px-3 text-sm font-semibold text-white active:brightness-95"
+            className="inline-flex h-[56px] items-center justify-center gap-2 rounded-[var(--pos-radius)] bg-[var(--pos-accent,#1e293b)] px-3 text-sm font-semibold text-white active:brightness-95"
           >
             <Save size={18} className="shrink-0" />
             Save changes

@@ -13,7 +13,7 @@ export default function PrintInvoiceMenu({
   onPrinted,
   onOpenChange,
 }) {
-  const { user, branchLabel, toast } = usePos()
+  const { user, branchLabel, toast, productById } = usePos()
   const [open, setOpen] = useState(autoOpen)
   const [coords, setCoords] = useState(null)
   const buttonRef = useRef(null)
@@ -73,6 +73,7 @@ export default function PrintInvoiceMenu({
         user,
         branchLabel,
         restaurant: user?.restaurant || {},
+        productById,
       })
       onPrinted?.(type)
       setMenuOpen(false)
