@@ -13,11 +13,13 @@ export default function ProductCard({ product, onAdd }) {
       onClick={() => onAdd(product)}
       className="flex flex-col overflow-hidden rounded-[var(--pos-radius)] border border-[var(--pos-border)] bg-white text-center shadow-[var(--pos-shadow)] active:scale-[0.98] active:border-[var(--pos-dark)] disabled:opacity-50"
     >
-      <span className="grid h-[72px] w-full place-items-center bg-[var(--pos-bg-from)]">
+      <span className="relative block h-24 w-full overflow-hidden bg-[var(--pos-bg-from)]">
         {showImage ? (
-          <img src={product.image} alt="" onError={() => setFailed(true)} className="h-12 w-12 object-contain" />
+          <img src={product.image} alt="" onError={() => setFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
         ) : (
-          <UtensilsCrossed className="text-[var(--pos-muted)]" size={20} />
+          <span className="grid h-full w-full place-items-center">
+            <UtensilsCrossed className="text-[var(--pos-muted)]" size={20} />
+          </span>
         )}
       </span>
       <span className="line-clamp-2 px-2 pt-1.5 text-xs font-medium leading-4">{product.name}</span>

@@ -75,14 +75,16 @@ function totalsHtml(order) {
   const count = (order.items || []).reduce((sum, item) => sum + (Number(item.qty) || 0), 0)
   const discount = Number(order.discountAmount) || 0
   const tax = Number(order.taxAmount) || 0
+  const service = Number(order.serviceCharge) || 0
   const delivery = Number(order.deliveryCharge) || 0
-  const subtotal = Number(order.subtotal) || Math.max(0, Number(order.amount) - tax - delivery + discount)
+  const subtotal = Number(order.subtotal) || Math.max(0, Number(order.amount) - tax - delivery - service + discount)
   const rows = [
     ['Items', String(count)],
     ['Subtotal', money(subtotal)],
     discount > 0 ? ['Discount', money(discount)] : null,
     tax > 0 ? [`Tax${order.taxInclusive ? ' incl.' : ''}${order.taxPercent ? ` (${order.taxPercent}%)` : ''}`, money(tax)] : null,
-    delivery > 0 ? ['Delivery / service', money(delivery)] : null,
+    service > 0 ? ['Service', money(service)] : null,
+    delivery > 0 ? ['Delivery', money(delivery)] : null,
     ['Total', money(order.amount)],
   ].filter(Boolean)
 
@@ -274,7 +276,14 @@ export const INVOICE_TYPES = [
   { id: 'kitchen', label: 'Kitchen ticket' },
 ]
 
-export function printInvoice(type, order, ctx = {}) {
+/** Open during the click, before any await, so the invoice is not blocked. */
+export function preparePrintWindow() {
+  const win = window.open('about:blank', '_blank', 'width=480,height=760')
+  if (!win) throw new Error('Allow pop-ups to print invoices')
+  return win
+}
+
+export function printInvoice(type, order, ctx = {}, target) {
   if (!order) throw new Error('No order to print')
   const detailed = attachDealLines(order, ctx)
 
@@ -286,10 +295,12 @@ export function printInvoice(type, order, ctx = {}) {
   // Blob URL avoids blank about:blank windows (document.write + noopener issues).
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
   const url = URL.createObjectURL(blob)
-  const win = window.open(url, '_blank', 'width=480,height=760')
+  const ready = target && !target.closed ? target : null
+  const win = ready || window.open(url, '_blank', 'width=480,height=760')
   if (!win) {
     URL.revokeObjectURL(url)
     throw new Error('Allow pop-ups to print invoices')
   }
+  if (ready) ready.location.href = url
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }

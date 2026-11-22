@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { DELIVERY_FEE, TAX_RATE } from '../data/catalog'
+import { DELIVERY_FEE } from '../data/catalog'
 import { OPENING_FLOAT, seedExpenses, seedStaff } from '../data/seed'
 import {
   buildOrderItemsPayload,
@@ -8,6 +8,7 @@ import {
   canUserEditOrder,
   cancelOrder as cancelOrderApi,
   channelFromOrderCode,
+  objectIdOrNull,
   clearStoredDesk,
   createCustomer,
   createOrder,
@@ -100,11 +101,28 @@ async function resolveSessionUser(seed) {
   }
 }
 
-export function summarize(cart, taxPercent = TAX_RATE * 100, taxInclusive = false) {
+export function cartCharges(cart) {
+  const channel = channelFromOrderCode(cart?.orderType)
+  const service = Math.max(0, Number(cart?.serviceCharge) || 0)
+  const delivery = cart?.deliveryCharge == null || cart?.deliveryCharge === ''
+    ? (channel === 'delivery' ? DELIVERY_FEE : 0)
+    : Math.max(0, Number(cart.deliveryCharge) || 0)
+  return { service, delivery }
+}
+
+export function resolveTaxPercent(paymentType, { cashTaxPercent = 0, cardTaxPercent = 0, method } = {}) {
+  const kind = String(paymentType?.kind || method || '').toLowerCase()
+  const typeTax = Number(paymentType?.tax)
+  if (paymentType && Number.isFinite(typeTax) && typeTax > 0) return typeTax
+  if (kind === 'card') return Math.max(0, Number(cardTaxPercent) || 0)
+  return Math.max(0, Number(cashTaxPercent) || 0)
+}
+
+export function summarize(cart, taxPercent = 0, taxInclusive = false) {
   const count = cart.lines.reduce((sum, line) => sum + line.qty, 0)
   const subtotal = cart.lines.reduce((sum, line) => sum + line.unitPrice * line.qty, 0)
   const discount = Math.min(subtotal, Math.max(0, Number(cart.discount) || 0))
-  const delivery = channelFromOrderCode(cart.orderType) === 'delivery' ? DELIVERY_FEE : 0
+  const { service, delivery } = cartCharges(cart)
   const afterDiscount = Math.max(0, subtotal - discount)
   const percent = Math.max(0, Number(taxPercent) || 0)
   const inclusive = Boolean(taxInclusive)
@@ -112,11 +130,12 @@ export function summarize(cart, taxPercent = TAX_RATE * 100, taxInclusive = fals
     ? Math.round((afterDiscount * percent) / (100 + percent) * 100) / 100
     : Math.round(afterDiscount * (percent / 100) * 100) / 100
   const total = inclusive
-    ? afterDiscount + delivery
-    : afterDiscount + tax + delivery
+    ? afterDiscount + service + delivery
+    : afterDiscount + tax + service + delivery
   return {
     subtotal,
     discount,
+    service,
     delivery,
     taxable: afterDiscount,
     tax,
@@ -125,6 +144,15 @@ export function summarize(cart, taxPercent = TAX_RATE * 100, taxInclusive = fals
     total: Math.round(total * 100) / 100,
     count,
   }
+}
+
+function isOpenOrder(order) {
+  if (!order) return false
+  const status = String(order.apiStatus || '').toUpperCase()
+  const prep = String(order.prepStatus || '').toLowerCase()
+  if (status === 'CANCELLED' || status === 'DISPATCHED') return false
+  if (prep === 'cancelled' || prep === 'dispatched') return false
+  return true
 }
 
 function mergeOrderReadyFlags(incoming, previous = []) {
@@ -153,6 +181,8 @@ export function PosProvider({ children }) {
   const [branchId, setBranchId] = useState(getStoredBranchId())
   const [branchLabel, setBranchLabel] = useState('')
   const [taxInclusive, setTaxInclusive] = useState(false)
+  const [cashTaxPercent, setCashTaxPercent] = useState(0)
+  const [cardTaxPercent, setCardTaxPercent] = useState(0)
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([{ id: 'all', name: 'All' }])
   const [tables, setTables] = useState([])
@@ -241,7 +271,7 @@ export function PosProvider({ children }) {
       const matchedPayment = payments.find((type) => type.id === current.paymentTypeId || type.kind === current.paymentTypeId)
       return {
         ...current,
-        paymentTypeId: matchedPayment?.id || current.paymentTypeId || '',
+        paymentTypeId: objectIdOrNull(matchedPayment?.id) || '',
         tableId: nextTables.some((row) => row.id === current.tableId) ? current.tableId : '',
         waiterId: nextWaiters.some((row) => row.id === current.waiterId) ? current.waiterId : '',
         riderId: nextRiders.some((row) => row.id === current.riderId) ? current.riderId : '',
@@ -342,16 +372,20 @@ export function PosProvider({ children }) {
   const applyBranchMeta = (branch) => {
     if (!branch) {
       setTaxInclusive(false)
+      setCashTaxPercent(0)
+      setCardTaxPercent(0)
       return
     }
     setTaxInclusive(Boolean(branch.taxInclusive))
+    setCashTaxPercent(Math.max(0, Number(branch.cashTaxPercent) || 0))
+    setCardTaxPercent(Math.max(0, Number(branch.cardTaxPercent) || 0))
   }
 
   const upsertOrder = (mapped) => {
     if (!mapped) return null
     setOrders((current) => {
       const without = current.filter((row) => row.id !== mapped.id)
-      if (mapped.apiStatus === 'CANCELLED') return without
+      if (!isOpenOrder(mapped)) return without
       return [mapped, ...without].sort((a, b) => b.createdAt - a.createdAt)
     })
     setHistory((current) => {
@@ -384,7 +418,7 @@ export function PosProvider({ children }) {
         : payload?.items || payload?.data || payload?.results || []
       const mapped = rows.map((row) => mapOrder(row)).filter(Boolean)
       setOrders((current) => mergeOrderReadyFlags(
-        mapped.filter((row) => row.apiStatus !== 'CANCELLED'),
+        mapped.filter(isOpenOrder),
         current,
       ))
       // History uses the same list API response — full set for browse/filter only.
@@ -551,6 +585,8 @@ export function PosProvider({ children }) {
     setBranchId('')
     setBranchLabel('')
     setTaxInclusive(false)
+    setCashTaxPercent(0)
+    setCardTaxPercent(0)
     setRawCatalog([])
     setProducts([])
     setCategories([{ id: 'all', name: 'All' }])
@@ -674,6 +710,7 @@ export function PosProvider({ children }) {
       paymentStatus: order.paymentStatus,
       apiStatus: order.apiStatus,
       prepStatus: order.prepStatus,
+      tableId: order.tableId || '',
     })
     setCart({
       ...emptyCart,
@@ -682,6 +719,7 @@ export function PosProvider({ children }) {
       paymentTypeId: order.paymentTypeId || '',
       tableId: order.tableId || '',
       waiterId: order.waiterId || '',
+      waiter: order.waiter || '',
       customerId: order.customerId ? String(order.customerId) : '',
       customer: order.customer || '',
       phone: order.phone || '',
@@ -690,6 +728,8 @@ export function PosProvider({ children }) {
       riderId: order.riderId || '',
       externalRef: order.externalRef || '',
       discount: Number(order.discountAmount) || 0,
+      serviceCharge: Number(order.serviceCharge) || 0,
+      deliveryCharge: Number(order.deliveryCharge) || 0,
       quote: null,
     })
     toast(`Editing ${orderLabel(order)}`)
@@ -704,23 +744,35 @@ export function PosProvider({ children }) {
     if (deliveryLike && !String(cart.address || '').trim()) throw new Error('Add a delivery address')
     if (!cart.lines.length) throw new Error('Add at least one item')
 
-    const paymentTypeId = payment.paymentTypeId || cart.paymentTypeId || undefined
+    const requestedId = payment.method === 'later'
+      ? paymentTypes.find((type) => type.kind === 'later')?.id
+      : (payment.paymentTypeId || cart.paymentTypeId)
+    const paymentTypeId = objectIdOrNull(requestedId)
+    const paymentType = paymentTypes.find((type) => type.id === paymentTypeId)
     const taxPercent = payment.taxPercent != null
       ? Number(payment.taxPercent)
-      : paymentTypes.find((type) => type.id === paymentTypeId)?.tax
+      : resolveTaxPercent(paymentType, {
+        cashTaxPercent,
+        cardTaxPercent,
+        method: payment.method || paymentType?.kind,
+      })
 
     return {
       orderType,
-      tableId: channel === 'dine-in' ? cart.tableId || null : null,
-      waiterId: cart.waiterId || null,
-      customerId: cart.customerId || null,
-      riderId: deliveryLike ? cart.riderId || null : null,
-      paymentTypeId: paymentTypeId || null,
-      notes: [cart.externalRef && `Ref: ${cart.externalRef}`, payment.notes].filter(Boolean).join('\n') || undefined,
+      tableId: objectIdOrNull(channel === 'dine-in' ? cart.tableId : null),
+      waiterId: objectIdOrNull(cart.waiterId),
+      customerId: objectIdOrNull(cart.customerId),
+      riderId: objectIdOrNull(deliveryLike ? cart.riderId : null),
+      paymentTypeId,
+      notes: [
+        !objectIdOrNull(cart.customerId) && String(cart.customer || '').trim() ? `Guest: ${String(cart.customer).trim()}` : '',
+        cart.externalRef && `Ref: ${cart.externalRef}`,
+        payment.notes,
+      ].filter(Boolean).join('\n') || undefined,
       discountAmount: Number(cart.discount) || 0,
       taxPercent,
-      serviceCharge: 0,
-      deliveryCharge: channel === 'delivery' ? DELIVERY_FEE : 0,
+      serviceCharge: cartCharges(cart).service,
+      deliveryCharge: cartCharges(cart).delivery,
       deliveryAddress: deliveryLike
         ? {
           line1: String(cart.address).trim(),
@@ -732,6 +784,18 @@ export function PosProvider({ children }) {
     }
   }
 
+  const markTableOccupied = (tableId) => {
+    if (!tableId) return
+    setTables((current) => current.map((table) => (
+      table.id === tableId && table.status !== 'OUT_OF_SERVICE'
+        ? { ...table, status: 'OCCUPIED' }
+        : table
+    )))
+    setCart((current) => (
+      current.tableId === tableId ? { ...current, tableId: '' } : current
+    ))
+  }
+
   const saveEditedOrder = async (payment = {}) => {
     if (!editingOrder?.id) throw new Error('No order is being edited')
     if (!user) throw new Error('Sign in first')
@@ -739,10 +803,20 @@ export function PosProvider({ children }) {
       throw new Error('This account cannot edit orders')
     }
     const body = buildCartOrderBody(payment)
-    let updated = await updateOrderApi(editingOrder.id, body)
+    const payNow = payment.method && payment.method !== 'later'
+    if (payNow && !body.paymentTypeId) throw new Error('Choose a payment type')
+    let updated
+    try {
+      updated = await updateOrderApi(editingOrder.id, body)
+    } catch (error) {
+      if (error?.status === 409 && /table/i.test(error.message || '')) {
+        markTableOccupied(body.tableId)
+        throw new Error(error.message || 'This table is already occupied and cannot take another dine-in order')
+      }
+      throw error
+    }
     let mapped = mapOrder(updated, { customer: cart.customer, phone: cart.phone })
 
-    const payNow = payment.method && payment.method !== 'later'
     if (payNow && mapped.paymentStatus !== 'paid') {
       if (!can(user, 'order:pay') && user.role !== 'SUPER_ADMIN') {
         upsertOrder(mapped)
@@ -751,7 +825,7 @@ export function PosProvider({ children }) {
         toast('Order updated — no pay permission', 'warn')
         return mapped
       }
-      const paymentTypeId = payment.paymentTypeId || cart.paymentTypeId
+      const paymentTypeId = body.paymentTypeId
       if (!paymentTypeId) throw new Error('Choose a payment type')
       const amountPaid = Math.max(0, Number(payment.received != null ? payment.received : mapped.amount) || 0)
       if (amountPaid <= 0) throw new Error('Enter an amount paid')
@@ -786,17 +860,26 @@ export function PosProvider({ children }) {
     if (!can(user, 'order:create') && user.role !== 'SUPER_ADMIN') {
       throw new Error('This account cannot create orders')
     }
-    const paymentTypeId = payment.paymentTypeId || cart.paymentTypeId || undefined
     const body = {
       branchId,
-      restaurantId: user.restaurantId || user.restaurant?.id || undefined,
+      restaurantId: objectIdOrNull(user.restaurantId || user.restaurant?.id) || undefined,
       ...buildCartOrderBody(payment),
     }
+    const payNow = payment.method && payment.method !== 'later'
+    if (payNow && !body.paymentTypeId) throw new Error('Choose a payment type')
 
-    let created = await createOrder(body)
+    let created
+    try {
+      created = await createOrder(body)
+    } catch (error) {
+      if (error?.status === 409 && /table/i.test(error.message || '')) {
+        markTableOccupied(body.tableId)
+        throw new Error(error.message || 'This table is already occupied and cannot take another dine-in order')
+      }
+      throw error
+    }
     let mapped = mapOrder(created, { customer: cart.customer, phone: cart.phone })
 
-    const payNow = payment.method && payment.method !== 'later'
     if (payNow) {
       if (!can(user, 'order:pay') && user.role !== 'SUPER_ADMIN') {
         upsertOrder(mapped)
@@ -804,11 +887,11 @@ export function PosProvider({ children }) {
         toast('Order placed unpaid — no pay permission', 'warn')
         return mapped
       }
-      if (!paymentTypeId) throw new Error('Choose a payment type')
+      if (!body.paymentTypeId) throw new Error('Choose a payment type')
       const amountPaid = Math.max(0, Number(payment.received != null ? payment.received : mapped.amount) || 0)
       if (amountPaid <= 0) throw new Error('Enter an amount paid')
       const paid = await payOrderApi(mapped.id, {
-        paymentTypeId,
+        paymentTypeId: body.paymentTypeId,
         amountPaid,
         amountReturn: Math.max(0, Number(payment.change != null ? payment.change : amountPaid - mapped.amount) || 0),
         notes: payment.txn || payment.wallet || undefined,
@@ -844,7 +927,7 @@ export function PosProvider({ children }) {
       const updated = await updateOrderStatus(orderId, apiStatus)
       const mapped = mapOrder(updated)
       upsertOrder(mapped)
-      if (mapped.tableId && (apiStatus === 'READY' || apiStatus === 'DISPATCHED')) {
+      if (mapped.tableId && apiStatus === 'READY') {
         setTables((current) => current.map((table) => (
           table.id === mapped.tableId ? { ...table, status: 'AVAILABLE' } : table
         )))
@@ -956,6 +1039,8 @@ export function PosProvider({ children }) {
       branchId,
       branchLabel,
       taxInclusive,
+      cashTaxPercent,
+      cardTaxPercent,
       selectBranch,
       products,
       categories,
@@ -1011,7 +1096,7 @@ export function PosProvider({ children }) {
       signOut,
       can: allowed,
     }),
-    [theme, user, booting, deskError, menuLoading, lookupsLoading, refreshing, branches, branchId, branchLabel, taxInclusive, products, categories, tables, waiters, zones, paymentTypes, orderTypes, cart, orders, history, ordersLoading, expenses, riders, staff, recentIds, toasts, closing, collectingId, editingOrder],
+    [theme, user, booting, deskError, menuLoading, lookupsLoading, refreshing, branches, branchId, branchLabel, taxInclusive, cashTaxPercent, cardTaxPercent, products, categories, tables, waiters, zones, paymentTypes, orderTypes, cart, orders, history, ordersLoading, expenses, riders, staff, recentIds, toasts, closing, collectingId, editingOrder],
   )
 
   return <PosContext.Provider value={value}>{children}</PosContext.Provider>

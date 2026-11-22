@@ -1,3 +1,4 @@
+import { choiceIds } from '../utils/choices'
 import { dealContents } from '../utils/format'
 
 function activeGroups(product, variation) {
@@ -9,12 +10,12 @@ export function buildLine(product, draft = {}) {
   const variation = product.variations.find((item) => item.id === variationId) || null
   const choiceMap = draft.choiceMap || {}
   const groups = activeGroups(product, variation)
-  const chosen = groups
-    .map((group) => {
-      const option = group.options.find((item) => item.id === choiceMap[group.id])
-      return option ? { group: group.name, ...option } : null
-    })
-    .filter(Boolean)
+  const chosen = groups.flatMap((group) => {
+    const picked = new Set(choiceIds(choiceMap[group.id]))
+    return group.options
+      .filter((item) => picked.has(String(item.id)))
+      .map((option) => ({ group: group.name, ...option }))
+  })
   const addonIds = draft.addonIds || []
   const addons = product.addons.filter((item) => addonIds.includes(item.id))
   const unitPrice = product.price
@@ -31,10 +32,14 @@ export function buildLine(product, draft = {}) {
     station: product.station,
     variationId,
     variation: variation?.name || null,
+    variationPrice: variation ? (product.price + (variation.price || 0)) : null,
+    itemPrice: product.price + (variation?.price || 0),
     choiceMap,
     choices: chosen.map((item) => item.name),
+    choiceDetails: chosen.map((item) => ({ name: item.name, price: item.price || 0 })),
     addonIds,
     addons: addons.map((item) => item.name),
+    addonDetails: addons.map((item) => ({ name: item.name, price: item.price || 0 })),
     instructions: (draft.instructions || '').trim(),
     qty: draft.qty || 1,
     unitPrice,

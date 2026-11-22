@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Minus, Plus, X } from 'lucide-react'
 import { categoryName } from '../../data/catalog'
+import { choiceGroupError, choiceHint, choiceIds, groupLimits, toggleGroupChoice } from '../../utils/choices'
 import { dealContents, pkr } from '../../utils/format'
+import ChoicePicker from '../ui/ChoicePicker'
 import DealLines from '../ui/DealLines'
 import FoodImage from '../ui/FoodImage'
 import Overlay from '../ui/Overlay'
@@ -20,12 +22,12 @@ export default function CustomizeModal({ product, line, onClose, onSave }) {
     [product.choiceGroups, variation],
   )
   const selectedAddons = product.addons.filter((item) => addonIds.includes(item.id))
-  const selectedChoices = groups
-    .map((group) => {
-      const option = group.options.find((item) => item.id === choices[group.id])
-      return option ? { group: group.name, ...option } : null
-    })
-    .filter(Boolean)
+  const selectedChoices = groups.flatMap((group) => {
+    const picked = new Set(choiceIds(choices[group.id]))
+    return group.options
+      .filter((item) => picked.has(String(item.id)))
+      .map((option) => ({ group: group.name, ...option }))
+  })
 
   const unitPrice = useMemo(() => {
     const base = product.price + (variation?.price || 0)
@@ -34,9 +36,9 @@ export default function CustomizeModal({ product, line, onClose, onSave }) {
   }, [product, variation, selectedAddons, selectedChoices])
 
   const save = () => {
-    const missing = groups.find((group) => group.required && !choices[group.id])
+    const missing = choiceGroupError(groups, choices)
     if (missing) {
-      setError(`Choose ${missing.name}`)
+      setError(missing)
       return
     }
     onSave({
@@ -48,10 +50,14 @@ export default function CustomizeModal({ product, line, onClose, onSave }) {
       station: product.station,
       variationId,
       variation: variation?.name || null,
+      variationPrice: variation ? (product.price + (variation.price || 0)) : null,
+      itemPrice: product.price + (variation?.price || 0),
       choiceMap: choices,
       choices: selectedChoices.map((item) => item.name),
+      choiceDetails: selectedChoices.map((item) => ({ name: item.name, price: item.price || 0 })),
       addonIds,
       addons: selectedAddons.map((item) => item.name),
+      addonDetails: selectedAddons.map((item) => ({ name: item.name, price: item.price || 0 })),
       instructions: instructions.trim(),
       qty,
       unitPrice,
@@ -84,39 +90,26 @@ export default function CustomizeModal({ product, line, onClose, onSave }) {
               </OptionBlock>
             )}
             {groups.map((group) => (
-              <OptionBlock key={group.id} title={group.name} hint={group.required ? 'Required' : 'Optional'}>
-                <div className="grid grid-cols-2 gap-2">
-                  {group.options.map((option) => (
-                    <SelectCard
-                      key={option.id}
-                      active={choices[group.id] === option.id}
-                      title={option.name}
-                      price={option.price}
-                      onClick={() => setChoices((current) => ({ ...current, [group.id]: option.id }))}
-                    />
-                  ))}
-                </div>
-              </OptionBlock>
+              <ChoicePicker
+                key={group.id}
+                title={group.name}
+                hint={choiceHint(group)}
+                required={groupLimits(group).min > 0}
+                options={group.options}
+                selected={choiceIds(choices[group.id])}
+                onToggle={(optionId) => setChoices((current) => toggleGroupChoice(current, group, optionId))}
+              />
             ))}
             {product.addons.length > 0 && (
-              <OptionBlock title="Add-ons" hint="Optional">
-                <div className="grid gap-2">
-                  {product.addons.map((addon) => {
-                    const active = addonIds.includes(addon.id)
-                    return (
-                      <button
-                        key={addon.id}
-                        type="button"
-                        onClick={() => setAddonIds((current) => (active ? current.filter((id) => id !== addon.id) : [...current, addon.id]))}
-                        className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left ${active ? 'border-orange-500 bg-orange-500/10' : 'border-line'}`}
-                      >
-                        <span className="font-bold">{addon.name}</span>
-                        <span className="text-sm font-semibold text-muted">+ {pkr(addon.price)}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </OptionBlock>
+              <ChoicePicker
+                title="Add-ons"
+                hint="Optional."
+                options={product.addons}
+                selected={addonIds.map(String)}
+                onToggle={(optionId) => setAddonIds((current) => (
+                  current.includes(optionId) ? current.filter((id) => id !== optionId) : [...current, optionId]
+                ))}
+              />
             )}
             <OptionBlock title="Quantity" hint="Touch to change">
               <div className="flex h-14 w-40 items-center justify-between rounded-full bg-soft px-2">

@@ -1,5 +1,5 @@
 const tones = {
-  paid: 'bg-good/15 text-good',
+  paid: 'bg-[#16a34a] text-white',
   unpaid: 'bg-amber-500/15 text-warn',
   partial: 'bg-amber-500/15 text-warn',
   credit: 'bg-orange-500/15 text-orange-600 dark:text-orange-300',

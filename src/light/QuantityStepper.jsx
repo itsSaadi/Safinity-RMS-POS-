@@ -7,18 +7,18 @@ export default function QuantityStepper({ qty, onChange, onRemove }) {
         type="button"
         aria-label="Remove one"
         onClick={() => (qty <= 1 ? onRemove() : onChange(qty - 1))}
-        className="grid h-12 w-12 place-items-center rounded-[var(--pos-radius)] border border-[var(--pos-border)] text-[var(--pos-danger)] active:bg-red-50"
+        className="grid h-8 w-8 place-items-center rounded-lg border border-[var(--pos-border)] bg-white text-[var(--pos-danger)] active:bg-red-50"
       >
-        <Trash2 size={18} />
+        <Trash2 size={14} />
       </button>
-      <span className="w-8 text-center text-base font-semibold tabular-nums">{qty}</span>
+      <span className="w-6 text-center text-sm font-semibold tabular-nums">{qty}</span>
       <button
         type="button"
         aria-label="Add one"
         onClick={() => onChange(qty + 1)}
-        className="grid h-12 w-12 place-items-center rounded-[var(--pos-radius)] border border-[var(--pos-border)] text-[var(--pos-text)] active:bg-[#eef3fb]"
+        className="grid h-8 w-8 place-items-center rounded-lg border border-[var(--pos-border)] bg-white text-[var(--pos-text)] active:bg-[#eef3fb]"
       >
-        <Plus size={18} />
+        <Plus size={14} />
       </button>
     </div>
   )

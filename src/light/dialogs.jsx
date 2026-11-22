@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Armchair, Bike, Check, Users } from 'lucide-react'
-import { groupTablesByFloor } from '../api'
+import { groupTablesByFloor, isTableLocked } from '../api'
 import { channelFromOrderCode } from '../api'
 import { notifications } from '../data/seed'
-import { summarize, usePos } from '../context/PosContext'
+import { resolveTaxPercent, summarize, usePos } from '../context/PosContext'
+import { choiceGroupError, choiceHint, choiceIds, groupLimits, toggleGroupChoice } from '../utils/choices'
 import { formatTime, itemsLabel, lineMeta, orderLabel, prepLabel } from '../utils/format'
 import { INVOICE_TYPES, printInvoice } from '../utils/printInvoice'
 import Button from './Button'
 import Chip from './Chip'
+import ChoicePicker from '../components/ui/ChoicePicker'
 import DealLines from '../components/ui/DealLines'
 import { buildLine } from './line'
 import Modal from './Modal'
@@ -29,6 +31,8 @@ export default function LightDialogs({ dialog, close, editor, payMethod, setPayM
   if (dialog === 'discount') return <DiscountDialog close={close} />
   if (dialog === 'customer') return <CustomerDialog close={close} />
   if (dialog === 'table') return <TableDialog close={close} />
+  if (dialog === 'waiter') return <WaiterDialog close={close} />
+  if (dialog === 'guest') return <GuestDialog close={close} />
   if (dialog === 'rider') return <RiderDialog close={close} />
   if (dialog === 'type' || dialog === 'menu') return <TypeDialog close={close} />
   if (dialog === 'item' && editor) return <ItemDialog editor={editor} close={close} onAdd={onAdd} onUpdate={onUpdate} />
@@ -295,8 +299,105 @@ function RiderDialog({ close }) {
   )
 }
 
+function GuestDialog({ close }) {
+  const { cart, updateCart } = usePos()
+  const [name, setName] = useState(cart.customerId ? '' : (cart.customer || ''))
+
+  const save = () => {
+    const guest = name.trim()
+    updateCart(guest
+      ? { customer: guest, customerId: '' }
+      : { customer: cart.customerId ? cart.customer : '', customerId: cart.customerId })
+    close()
+  }
+
+  return (
+    <Modal
+      title="Guest name"
+      onClose={close}
+      footer={(
+        <>
+          <Button onClick={close}>Cancel</Button>
+          <Button variant="primary" onClick={save}>Save</Button>
+        </>
+      )}
+    >
+      <label className="block text-xs font-medium text-[var(--pos-muted)]">
+        Optional. Leave blank for a walk-in.
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Guest name"
+          className="mt-2 h-12 w-full rounded-[var(--pos-radius)] border border-[var(--pos-border)] px-3 text-sm font-medium text-[var(--pos-text)] outline-none focus:border-[var(--pos-accent)]"
+        />
+      </label>
+    </Modal>
+  )
+}
+
+function WaiterDialog({ close }) {
+  const { cart, updateCart, waiters } = usePos()
+
+  const pick = (waiter) => {
+    updateCart({ waiterId: waiter.id, waiter: waiter.label })
+    close()
+  }
+
+  return (
+    <Modal
+      title="Choose a waiter"
+      onClose={close}
+      footer={(
+        <>
+          {cart.waiterId ? (
+            <Button onClick={() => { updateCart({ waiterId: '', waiter: '' }); close() }}>Clear waiter</Button>
+          ) : null}
+          <Button variant="primary" onClick={close}>Done</Button>
+        </>
+      )}
+    >
+      <p className="mb-3 text-sm text-[var(--pos-muted)]">Optional. The order taker can assign a waiter to this dine-in table.</p>
+      {waiters.length === 0 ? (
+        <p className="py-8 text-center text-sm text-[var(--pos-muted)]">No waiters loaded for this branch.</p>
+      ) : (
+        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+          {waiters.map((waiter) => {
+            const selected = cart.waiterId === waiter.id
+            return (
+              <button
+                key={waiter.id}
+                type="button"
+                onClick={() => pick(waiter)}
+                className={`relative flex items-center gap-2.5 rounded-[10px] border px-2.5 py-2 text-left transition ${
+                  selected
+                    ? 'border-[var(--pos-accent)] bg-[#f1f5f9] shadow-[0_0_0_1px_var(--pos-accent)]'
+                    : 'border-[var(--pos-border)] bg-white active:scale-[0.99] active:bg-[#f8fbff]'
+                }`}
+              >
+                {selected && (
+                  <span className="absolute right-1.5 top-1.5 grid h-4 w-4 place-items-center rounded-full bg-[var(--pos-accent)] text-white">
+                    <Check size={10} strokeWidth={3} />
+                  </span>
+                )}
+                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${selected ? 'bg-[var(--pos-accent)] text-white' : 'bg-[#eef3fb] text-[var(--pos-accent)]'}`}>
+                  <Users size={16} />
+                </span>
+                <span className="min-w-0 flex-1 pr-4">
+                  <span className="block truncate text-sm font-bold text-[var(--pos-text)]">{waiter.label}</span>
+                  {waiter.phone ? <span className="block truncate text-[11px] text-[var(--pos-muted)]">{waiter.phone}</span> : null}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </Modal>
+  )
+}
+
 function TableDialog({ close }) {
-  const { cart, updateCart, tables } = usePos()
+  const { cart, updateCart, tables, orders, editingOrder } = usePos()
+  const allowTableId = editingOrder?.tableId || ''
   const floors = useMemo(() => groupTablesByFloor(tables), [tables])
   const initialFloor = floors.find((group) => group.tables.some((table) => table.id === cart.tableId))?.floor
     || floors[0]?.floor
@@ -306,7 +407,7 @@ function TableDialog({ close }) {
   const activeTables = activeFloor?.tables || []
 
   const pick = (table) => {
-    if (table.status === 'OUT_OF_SERVICE') return
+    if (isTableLocked(table, { orders, allowTableId })) return
     updateCart({ tableId: table.id })
     close()
   }
@@ -350,9 +451,11 @@ function TableDialog({ close }) {
 
           <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
             {activeTables.map((table) => {
-              const meta = tableStatusMeta[table.status] || tableStatusMeta.AVAILABLE
+              const locked = isTableLocked(table, { orders, allowTableId })
+              const shownStatus = locked && table.status === 'AVAILABLE' ? 'OCCUPIED' : table.status
+              const meta = tableStatusMeta[shownStatus] || tableStatusMeta.AVAILABLE
               const selected = cart.tableId === table.id
-              const closed = table.status === 'OUT_OF_SERVICE'
+              const closed = locked
               return (
                 <button
                   key={table.id}
@@ -438,9 +541,9 @@ function ItemDialog({ editor, close, onAdd, onUpdate }) {
   const preview = buildLine(product, draft)
 
   const save = () => {
-    const missing = groups.find((group) => group.required && !choiceMap[group.id])
+    const missing = choiceGroupError(groups, choiceMap)
     if (missing) {
-      setError(`Choose ${missing.name}`)
+      setError(missing)
       return
     }
     if (line) onUpdate(line.id, preview)
@@ -465,30 +568,36 @@ function ItemDialog({ editor, close, onAdd, onUpdate }) {
         {product.variations.length > 0 && (
           <ChoiceRow label="Size">
             {product.variations.map((option) => (
-              <Chip key={option.id} active={variationId === option.id} onClick={() => setVariationId(option.id)}>{option.name}</Chip>
+              <Chip key={option.id} active={variationId === option.id} onClick={() => setVariationId(option.id)}>
+                {option.name}
+                <span className={variationId === option.id ? 'text-white/80' : 'text-[var(--pos-muted)]'}>
+                  PKR {money(product.price + (option.price || 0))}
+                </span>
+              </Chip>
             ))}
           </ChoiceRow>
         )}
         {groups.map((group) => (
-          <ChoiceRow key={group.id} label={group.name}>
-            {group.options.map((option) => (
-              <Chip key={option.id} active={choiceMap[group.id] === option.id} onClick={() => setChoiceMap((current) => ({ ...current, [group.id]: option.id }))}>
-                {option.name}
-              </Chip>
-            ))}
-          </ChoiceRow>
+          <ChoicePicker
+            key={group.id}
+            title={group.name}
+            hint={choiceHint(group)}
+            required={groupLimits(group).min > 0}
+            options={group.options}
+            selected={choiceIds(choiceMap[group.id])}
+            onToggle={(optionId) => setChoiceMap((current) => toggleGroupChoice(current, group, optionId))}
+          />
         ))}
         {product.addons.length > 0 && (
-          <ChoiceRow label="Add-ons">
-            {product.addons.map((addon) => {
-              const active = addonIds.includes(addon.id)
-              return (
-                <Chip key={addon.id} active={active} onClick={() => setAddonIds((current) => (active ? current.filter((id) => id !== addon.id) : [...current, addon.id]))}>
-                  {addon.name}
-                </Chip>
-              )
-            })}
-          </ChoiceRow>
+          <ChoicePicker
+            title="Add-ons"
+            hint="Optional."
+            options={product.addons}
+            selected={addonIds.map(String)}
+            onToggle={(optionId) => setAddonIds((current) => (
+              current.includes(optionId) ? current.filter((id) => id !== optionId) : [...current, optionId]
+            ))}
+          />
         )}
         <label className="block text-xs font-medium text-[var(--pos-muted)]">
           Note
@@ -529,7 +638,8 @@ function OrderCalc({ totals, lines = [] }) {
           label={`${totals.taxInclusive ? 'Tax incl.' : 'Tax'} (${totals.taxPercent}%)`}
           value={money(totals.tax)}
         />
-        <CalcRow label="Delivery / service" value={money(totals.delivery)} />
+        <CalcRow label="Service" value={money(totals.service || 0)} />
+        <CalcRow label="Delivery" value={money(totals.delivery)} />
         <div className="flex justify-between border-t border-[var(--pos-border)] pt-2 text-base font-bold text-[var(--pos-text)]">
           <span>Total</span>
           <span className="tabular-nums">{money(totals.total)}</span>
@@ -550,7 +660,7 @@ function CalcRow({ label, value }) {
 
 function PayDialog({ close, payMethod, setPayMethod, take }) {
   const navigate = useNavigate()
-  const { cart, placeOrder, toast, paymentTypes, updateCart, taxInclusive, user, branchLabel, editingOrder, productById } = usePos()
+  const { cart, placeOrder, toast, paymentTypes, updateCart, taxInclusive, cashTaxPercent, cardTaxPercent, user, branchLabel, editingOrder, productById } = usePos()
   const editing = Boolean(editingOrder?.id)
   const payNowMethods = paymentTypes.filter((item) => item.kind !== 'later')
   const [method, setMethod] = useState(payMethod === 'later' && take ? 'later' : (payMethod && payMethod !== 'later' ? payMethod : payNowMethods[0]?.kind || 'cash'))
@@ -561,9 +671,11 @@ function PayDialog({ close, payMethod, setPayMethod, take }) {
     return match?.id || ''
   })
   const [busy, setBusy] = useState(false)
-  const selectedPayment = paymentTypes.find((item) => item.id === paymentTypeId)
-    || payNowMethods.find((item) => item.kind === method)
-  const totals = summarize(cart, selectedPayment?.tax ?? 0, taxInclusive)
+  const selectedPayment = method === 'later'
+    ? paymentTypes.find((item) => item.kind === 'later')
+    : (paymentTypes.find((item) => item.id === paymentTypeId)
+      || payNowMethods.find((item) => item.kind === method))
+  const totals = summarize(cart, resolveTaxPercent(selectedPayment, { cashTaxPercent, cardTaxPercent, method }), taxInclusive)
   const [received, setReceived] = useState(String(totals.total))
   const [cashPart, setCashPart] = useState('')
   const [cardPart, setCardPart] = useState('')
@@ -734,7 +846,6 @@ function PayDialog({ close, payMethod, setPayMethod, take }) {
   }
 
   if (method === 'later') {
-    const laterTotals = summarize(cart, selectedPayment?.tax ?? 0, taxInclusive)
     return (
       <Modal
         title="Pay later"
@@ -742,12 +853,12 @@ function PayDialog({ close, payMethod, setPayMethod, take }) {
         footer={(
           <>
             <Button onClick={close}>Cancel</Button>
-            <Button variant="dark" onClick={charge} disabled={busy}>Send unpaid · {money(laterTotals.total)}</Button>
+            <Button variant="dark" onClick={charge} disabled={busy}>Send unpaid · {money(totals.total)}</Button>
           </>
         )}
       >
         <div className="space-y-4">
-          <OrderCalc totals={laterTotals} lines={cart.lines} />
+          <OrderCalc totals={totals} lines={cart.lines} />
           <p className="text-sm text-[var(--pos-muted)]">
             The ticket goes to the kitchen unpaid. The full amount stays due until payment is collected.
           </p>
@@ -818,9 +929,9 @@ function PayDialog({ close, payMethod, setPayMethod, take }) {
 }
 
 function SaveDialog({ close }) {
-  const { cart, paymentTypes, taxInclusive } = usePos()
+  const { cart, paymentTypes, taxInclusive, cashTaxPercent, cardTaxPercent } = usePos()
   const selectedPayment = paymentTypes.find((item) => item.id === cart.paymentTypeId)
-  const totals = summarize(cart, selectedPayment?.tax, taxInclusive)
+  const totals = summarize(cart, resolveTaxPercent(selectedPayment, { cashTaxPercent, cardTaxPercent, method: selectedPayment?.kind }), taxInclusive)
   return (
     <Modal title="Ticket kept" onClose={close} footer={<Button variant="primary" onClick={close}>Keep open</Button>}>
       <p className="text-sm text-[var(--pos-muted)]">
@@ -833,9 +944,9 @@ function SaveDialog({ close }) {
 }
 
 function PrintDialog({ close }) {
-  const { cart, paymentTypes, taxInclusive } = usePos()
+  const { cart, paymentTypes, taxInclusive, cashTaxPercent, cardTaxPercent } = usePos()
   const selectedPayment = paymentTypes.find((item) => item.id === cart.paymentTypeId)
-  const totals = summarize(cart, selectedPayment?.tax, taxInclusive)
+  const totals = summarize(cart, resolveTaxPercent(selectedPayment, { cashTaxPercent, cardTaxPercent, method: selectedPayment?.kind }), taxInclusive)
   return (
     <Modal title="Print ticket" onClose={close} footer={<Button variant="primary" onClick={() => window.print()} disabled={!cart.lines.length}>Print</Button>}>
       <div id="receipt" className="space-y-1 text-sm">
@@ -860,7 +971,7 @@ function TicketList({ close, mode }) {
   const navigate = useNavigate()
   const rows = useMemo(() => {
     if (mode === 'history') return history
-    return orders.filter((order) => order.paymentStatus !== 'paid' || order.prepStatus !== 'dispatched')
+    return orders.filter((order) => order.prepStatus !== 'dispatched' && order.apiStatus !== 'DISPATCHED')
   }, [history, mode, orders])
 
   return (
@@ -959,6 +1070,15 @@ function Field({ label, value, onChange }) {
   )
 }
 
+function ChoiceRow({ label, children }) {
+  return (
+    <div>
+      <p className="mb-2 text-xs font-medium text-[var(--pos-muted)]">{label}</p>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  )
+}
+
 function Picker({ label, options, value, onChange }) {
   return (
     <div>
@@ -974,11 +1094,3 @@ function Picker({ label, options, value, onChange }) {
   )
 }
 
-function ChoiceRow({ label, children }) {
-  return (
-    <div>
-      <p className="mb-2 text-xs font-medium text-[var(--pos-muted)]">{label}</p>
-      <div className="flex flex-wrap gap-2">{children}</div>
-    </div>
-  )
-}

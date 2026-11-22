@@ -1,20 +1,26 @@
-import { Bike, Percent, Printer, Save, Table2, Trash2, UserRound, X } from 'lucide-react'
-import { summarize, usePos } from '../context/PosContext'
+import { Bike, Percent, Printer, Table2, Trash2, User, UserRound, Users, X } from 'lucide-react'
+import { resolveTaxPercent, summarize, usePos } from '../context/PosContext'
 import Button from './Button'
 import CartItem from './CartItem'
 import Chip from './Chip'
 import OrderSummary from './OrderSummary'
 import TotalBar from './TotalBar'
 
-export default function OrderPanel({ payMethod, onEdit, onCustomer, onTable, onRider, onMenu, onMethod, onSave, onPrint, onDiscount, onClear, onPayNow, onPayLater, onSaveEdit, onCancelEdit }) {
-  const { cart, updateCart, setOrderType, setQty, removeLine, paymentTypes, tables, riders, orderTypes, orderChannel, taxInclusive, editingOrder } = usePos()
+export default function OrderPanel({ payMethod, onEdit, onCustomer, onTable, onWaiter, onGuest, onRider, onMenu, onMethod, onPrint, onDiscount, onClear, onPayNow, onPayLater, onSaveEdit, onCancelEdit }) {
+  const { cart, updateCart, setOrderType, setQty, removeLine, paymentTypes, tables, waiters, riders, orderTypes, orderChannel, taxInclusive, cashTaxPercent, cardTaxPercent, editingOrder } = usePos()
   const selectedPayment = paymentTypes.find((item) => item.id === cart.paymentTypeId)
     || paymentTypes.find((item) => item.kind === payMethod || item.id === payMethod)
-  const totals = summarize(cart, selectedPayment?.tax, taxInclusive)
+  const totals = summarize(
+    cart,
+    resolveTaxPercent(selectedPayment, { cashTaxPercent, cardTaxPercent, method: selectedPayment?.kind || payMethod }),
+    taxInclusive,
+  )
   const methodLabel = selectedPayment?.label || 'Cash'
   const countLabel = `${totals.count} item${totals.count === 1 ? '' : 's'}`
   const selectedTable = tables.find((table) => table.id === cart.tableId)
+  const selectedWaiter = waiters.find((waiter) => waiter.id === cart.waiterId)
   const selectedRider = riders.find((rider) => rider.id === cart.riderId)
+  const waiterLabel = selectedWaiter?.label || cart.waiter || 'Waiter'
   const tableLabel = selectedTable
     ? `${selectedTable.label} · ${selectedTable.floor || 'Main floor'}`
     : 'Table'
@@ -49,6 +55,50 @@ export default function OrderPanel({ payMethod, onEdit, onCustomer, onTable, onR
             <Table2 size={15} className="shrink-0" />
             <span className="max-w-[10rem] truncate sm:max-w-[14rem]">{tableLabel}</span>
           </button>
+        )}
+        {orderChannel === 'dine-in' && (
+          <div className={`inline-flex h-9 max-w-full items-center gap-1 rounded-full border py-0 pl-3 ${selectedWaiter || cart.waiter ? 'border-[var(--pos-accent)] bg-[#f1f5f9] pr-1' : 'border-[var(--pos-border)] pr-3'}`}>
+            <button
+              type="button"
+              onClick={onWaiter}
+              className="inline-flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-[var(--pos-text)]"
+            >
+              <Users size={15} className="shrink-0" />
+              <span className="max-w-[10rem] truncate sm:max-w-[14rem]">{waiterLabel}</span>
+            </button>
+            {(selectedWaiter || cart.waiter) ? (
+              <button
+                type="button"
+                aria-label="Clear waiter"
+                onClick={() => updateCart({ waiterId: '', waiter: '' })}
+                className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[var(--pos-muted)] active:bg-white/70"
+              >
+                <X size={12} />
+              </button>
+            ) : null}
+          </div>
+        )}
+        {orderChannel === 'dine-in' && (
+          <div className={`inline-flex h-9 max-w-full items-center gap-1 rounded-full border py-0 pl-3 ${!cart.customerId && cart.customer ? 'border-[var(--pos-accent)] bg-[#f1f5f9] pr-1' : 'border-[var(--pos-border)] pr-3'}`}>
+            <button
+              type="button"
+              onClick={onGuest}
+              className="inline-flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-[var(--pos-text)]"
+            >
+              <User size={15} className="shrink-0" />
+              <span className="max-w-[10rem] truncate sm:max-w-[14rem]">{!cart.customerId && cart.customer ? cart.customer : 'Guest'}</span>
+            </button>
+            {!cart.customerId && cart.customer ? (
+              <button
+                type="button"
+                aria-label="Clear guest"
+                onClick={() => updateCart({ customer: '' })}
+                className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[var(--pos-muted)] active:bg-white/70"
+              >
+                <X size={12} />
+              </button>
+            ) : null}
+          </div>
         )}
         {orderChannel === 'delivery' && (
           <div className={`inline-flex h-9 max-w-full items-center gap-1 rounded-full border py-0 pl-3 ${selectedRider || cart.rider ? 'border-[var(--pos-accent)] bg-[#f1f5f9] pr-1' : 'border-[var(--pos-border)] pr-3'}`}>
@@ -115,10 +165,9 @@ export default function OrderPanel({ payMethod, onEdit, onCustomer, onTable, onR
         ))}
       </div>
       <OrderSummary totals={totals} methodLabel={methodLabel} onMethod={onMethod} />
-      <div className="grid grid-cols-3 gap-2 px-3 pb-3">
-        <Button onClick={onSave}><Save size={16} /> Save</Button>
-        <Button onClick={onPrint}><Printer size={16} /> Print</Button>
-        <Button onClick={onDiscount}><Percent size={16} /> Discounts</Button>
+      <div className="grid grid-cols-2 gap-1.5 px-3 pb-2">
+        <Button className="h-9 min-h-0 gap-1 !border-transparent !bg-[#e0f2fe] px-2 text-xs !text-[#0369a1]" onClick={onPrint}><Printer size={14} /> Print</Button>
+        <Button className="h-9 min-h-0 gap-1 !border-transparent !bg-[#fff4d6] px-2 text-xs !text-[#b45309]" onClick={onDiscount}><Percent size={14} /> Discount</Button>
       </div>
       <TotalBar
         total={totals.total}

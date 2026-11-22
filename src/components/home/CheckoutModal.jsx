@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Banknote, Check, CreditCard, Smartphone, Wallet, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { summarize, usePos } from '../../context/PosContext'
+import { resolveTaxPercent, summarize, usePos } from '../../context/PosContext'
 import { lineMeta, orderLabel, pkr } from '../../utils/format'
 import { INVOICE_TYPES, printInvoice } from '../../utils/printInvoice'
 import Overlay from '../ui/Overlay'
@@ -11,14 +11,21 @@ const quickCash = [1000, 2000, 5000]
 
 export default function CheckoutModal({ onClose }) {
   const navigate = useNavigate()
-  const { cart, placeOrder, paymentTypes, updateCart, taxInclusive, orderChannel, user, branchLabel, toast, editingOrder, productById } = usePos()
+  const { cart, placeOrder, paymentTypes, updateCart, taxInclusive, cashTaxPercent, cardTaxPercent, orderChannel, user, branchLabel, toast, editingOrder, productById } = usePos()
   const editing = Boolean(editingOrder?.id)
   const selectedPayment = paymentTypes.find((item) => item.id === cart.paymentTypeId)
     || paymentTypes.find((item) => item.kind === (paymentTypes[0]?.kind))
     || paymentTypes[0]
-  const totals = summarize(cart, selectedPayment?.tax, taxInclusive)
   const [method, setMethod] = useState(() => paymentTypes.find((item) => item.id === cart.paymentTypeId)?.kind || paymentTypes[0]?.kind || 'cash')
   const [paymentTypeId, setPaymentTypeId] = useState(() => selectedPayment?.id || '')
+  const activePayment = paymentTypes.find((item) => item.id === paymentTypeId)
+    || paymentTypes.find((item) => item.kind === method)
+    || selectedPayment
+  const totals = summarize(
+    cart,
+    resolveTaxPercent(activePayment, { cashTaxPercent, cardTaxPercent, method: activePayment?.kind || method }),
+    taxInclusive,
+  )
   const [received, setReceived] = useState(String(totals.total))
   const [cashPart, setCashPart] = useState('')
   const [cardPart, setCardPart] = useState('')
@@ -176,6 +183,7 @@ export default function CheckoutModal({ onClose }) {
             <Mini label="Subtotal" value={pkr(totals.subtotal)} />
             <Mini label="Discount" value={pkr(totals.discount)} />
             <Mini label={totals.taxInclusive ? `Tax incl. (${totals.taxPercent}%)` : `Tax (${totals.taxPercent}%)`} value={pkr(totals.tax)} />
+            <Mini label="Service" value={pkr(totals.service || 0)} />
             <Mini label="Delivery" value={pkr(totals.delivery)} />
           </div>
           <p className="mt-3 font-display text-3xl leading-none text-orange-500">{pkr(totals.total)}</p>
@@ -196,7 +204,7 @@ export default function CheckoutModal({ onClose }) {
                   updateCart({ paymentTypeId: item.id })
                   setError('')
                 }}
-                className={`flex h-20 flex-col items-start justify-between rounded-3xl border px-3 py-3 text-left ${paymentTypeId === item.id || method === item.kind ? 'border-orange-500 bg-orange-500 text-white' : 'border-line'}`}
+                className={`flex h-20 flex-col items-start justify-between rounded-3xl border px-3 py-3 text-left ${paymentTypeId === item.id || method === item.kind ? 'border-[#16a34a] bg-[#16a34a] text-white' : 'border-line'}`}
               >
                 <PayIcon id={item.kind} />
                 <span className="text-sm font-extrabold">{item.label}</span>
@@ -238,7 +246,7 @@ export default function CheckoutModal({ onClose }) {
             <Stat label="Change" value={pkr(change)} />
           </div>
           {error && <p className="mt-3 text-sm font-bold text-red-500">{error}</p>}
-          <button type="button" onClick={charge} disabled={busy} className="mt-4 h-14 rounded-2xl bg-ink text-base font-extrabold text-white disabled:opacity-60">
+          <button type="button" onClick={charge} disabled={busy} className="mt-4 h-14 rounded-2xl bg-[#16a34a] text-base font-extrabold text-white disabled:opacity-60">
             {method === 'later' ? `Pay later · ${pkr(totals.total)} due` : `Take payment · ${pkr(totals.total)}`}
           </button>
         </div>

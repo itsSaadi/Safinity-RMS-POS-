@@ -9,7 +9,7 @@ export default function SearchBar({ query, onQuery, onSubmit }) {
   }, [])
 
   return (
-    <label className="relative block w-full max-w-md">
+    <label className="relative block w-full max-w-xl">
       <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--pos-muted)]" />
       <input
         ref={input}

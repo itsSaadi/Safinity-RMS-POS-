@@ -11,7 +11,8 @@ import OrderDrawer from '../components/orders/OrderDrawer'
 import PrintInvoiceMenu from '../components/orders/PrintInvoiceMenu'
 
 const payments = ['all', 'paid', 'unpaid', 'partial']
-const preps = ['all', 'new', 'preparing', 'ready', 'dispatched', 'cancelled']
+const todayPreps = ['all', 'new', 'preparing', 'ready', 'cancelled']
+const historyPreps = ['all', 'new', 'preparing', 'ready', 'dispatched', 'cancelled']
 const flow = ['new', 'preparing', 'ready', 'dispatched']
 
 const statusOptions = [
@@ -25,7 +26,10 @@ export default function OrdersPage({ source = 'today' }) {
   const { orders, history, orderTypes, loadOrders, ordersLoading, branchId, setPrepStatus, startCollect, startEditOrder, canEditOrder } = usePos()
   const navigate = useNavigate()
   const readOnly = source === 'history'
-  const pool = readOnly ? history : orders
+  const pool = readOnly
+    ? history
+    : orders.filter((order) => order.prepStatus !== 'dispatched' && order.apiStatus !== 'DISPATCHED')
+  const preps = readOnly ? historyPreps : todayPreps
   const [mode, setMode] = useState('cards')
   const [query, setQuery] = useState('')
   const [type, setType] = useState('all')
@@ -176,13 +180,13 @@ export default function OrdersPage({ source = 'today' }) {
                               </select>
                             )}
                             {canPay && (
-                              <button type="button" aria-label="Take payment" onClick={() => pay(order)} className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-white">
+                              <button type="button" aria-label="Take payment" onClick={() => pay(order)} className="grid h-9 w-9 place-items-center rounded-xl bg-[#dcfce7] text-[#166534]">
                                 <CreditCard size={14} />
                               </button>
                             )}
-                            <PrintInvoiceMenu order={order} buttonClassName="grid h-9 w-9 place-items-center rounded-xl border border-line bg-white" />
+                            <PrintInvoiceMenu order={order} buttonClassName="grid h-9 w-9 place-items-center rounded-xl bg-[#e0f2fe] text-[#0369a1]" />
                             {showEdit && (
-                              <button type="button" aria-label="Edit order" onClick={() => edit(order)} className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-white">
+                              <button type="button" aria-label="Edit order" onClick={() => edit(order)} className="grid h-9 w-9 place-items-center rounded-xl bg-[#fff4d6] text-[#b45309]">
                                 <Pencil size={14} />
                               </button>
                             )}
@@ -262,7 +266,7 @@ function OrderCard({ order, onOpen, onStatus, onPay, onEdit, readOnly, canEdit }
           <p className="shrink-0 text-sm font-extrabold">{pkr(order.amount)}</p>
         </div>
         <div className="mt-2 flex flex-wrap gap-1">
-          <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-bold uppercase">{order.paymentStatus}</span>
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${order.paymentStatus === 'paid' ? 'bg-[#16a34a] text-white' : 'bg-white/70'}`}>{order.paymentStatus}</span>
           <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-bold uppercase">{typeLabel(order.type)}</span>
         </div>
       </button>
@@ -306,13 +310,13 @@ function OrderCard({ order, onOpen, onStatus, onPay, onEdit, readOnly, canEdit }
           </label>
           <div className="flex shrink-0 items-center gap-1.5">
             {canPay && (
-              <button type="button" aria-label="Take payment" onClick={onPay} className="grid h-10 w-10 place-items-center rounded-xl bg-orange-500 text-white shadow-sm">
+              <button type="button" aria-label="Take payment" onClick={onPay} className="grid h-10 w-10 place-items-center rounded-xl bg-[#16a34a] text-white shadow-sm">
                 <CreditCard size={16} />
               </button>
             )}
-            <PrintInvoiceMenu order={order} buttonClassName="grid h-10 w-10 place-items-center rounded-xl bg-ink text-white shadow-sm" />
+            <PrintInvoiceMenu order={order} buttonClassName="grid h-10 w-10 place-items-center rounded-xl bg-[#e0f2fe] text-[#0369a1] shadow-sm" />
             {canEdit && (
-              <button type="button" aria-label="Edit order" onClick={onEdit} className="grid h-10 w-10 place-items-center rounded-xl bg-nav text-white shadow-sm">
+              <button type="button" aria-label="Edit order" onClick={onEdit} className="grid h-10 w-10 place-items-center rounded-xl bg-[#fff4d6] text-[#b45309] shadow-sm">
                 <Pencil size={16} />
               </button>
             )}

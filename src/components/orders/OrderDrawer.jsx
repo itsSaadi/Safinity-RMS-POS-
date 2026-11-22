@@ -98,7 +98,7 @@ export default function OrderDrawer({ order, onClose, readOnly = false }) {
                     navigate('/')
                   }
                 }}
-                className="inline-flex h-12 w-full items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-nav px-3 text-sm font-bold text-white"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-[#fff4d6] px-3 text-sm font-bold text-[#b45309]"
               >
                 <Pencil size={16} className="shrink-0" />
                 Edit order
@@ -108,7 +108,7 @@ export default function OrderDrawer({ order, onClose, readOnly = false }) {
               <button
                 type="button"
                 onClick={() => setPrepStatus(order.id, next)}
-                className="inline-flex h-12 w-full items-center justify-center whitespace-nowrap rounded-2xl bg-ink px-3 text-sm font-bold text-white"
+                className="inline-flex h-12 w-full items-center justify-center whitespace-nowrap rounded-2xl bg-[#e0f2fe] px-3 text-sm font-bold text-[#0369a1]"
               >
                 Move to {prepLabel(next)}
               </button>
@@ -121,7 +121,7 @@ export default function OrderDrawer({ order, onClose, readOnly = false }) {
                   onClose()
                   navigate('/')
                 }}
-                className="inline-flex h-12 w-full items-center justify-center whitespace-nowrap rounded-2xl bg-orange-500 px-3 text-sm font-bold text-white"
+                className="inline-flex h-12 w-full items-center justify-center whitespace-nowrap rounded-2xl bg-[#16a34a] px-3 text-sm font-bold text-white"
               >
                 Take payment
               </button>

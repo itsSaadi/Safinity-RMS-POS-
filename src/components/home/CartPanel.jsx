@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Bike, Minus, Pencil, Plus, ShoppingBag, Trash2, UtensilsCrossed, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { usePos, summarize } from '../../context/PosContext'
+import { isTableLocked } from '../../api'
+import { usePos, resolveTaxPercent, summarize } from '../../context/PosContext'
+import { DELIVERY_FEE } from '../../data/catalog'
 import { lineMeta, pkr } from '../../utils/format'
 import FoodImage from '../ui/FoodImage'
 import DealLines from '../ui/DealLines'
@@ -17,10 +19,10 @@ const icons = {
 
 export default function CartPanel({ onEdit, onCheckout, onClose, mobile }) {
   const navigate = useNavigate()
-  const { cart, updateCart, setOrderType, setQty, removeLine, clearCart, riders, tables, waiters, zones, orderTypes, orderChannel, toast, paymentTypes, taxInclusive, editingOrder, saveEditedOrder, cancelEditOrder } = usePos()
+  const { cart, updateCart, setOrderType, setQty, removeLine, clearCart, riders, tables, waiters, zones, orderTypes, orderChannel, toast, paymentTypes, taxInclusive, cashTaxPercent, cardTaxPercent, orders, editingOrder, saveEditedOrder, cancelEditOrder } = usePos()
   const serviceTypes = orderTypes
   const selectedPayment = paymentTypes.find((item) => item.id === cart.paymentTypeId)
-  const totals = summarize(cart, selectedPayment?.tax, taxInclusive)
+  const totals = summarize(cart, resolveTaxPercent(selectedPayment, { cashTaxPercent, cardTaxPercent, method: selectedPayment?.kind }), taxInclusive)
   const [confirmClear, setConfirmClear] = useState(false)
   const editing = Boolean(editingOrder?.id)
 
@@ -88,7 +90,15 @@ export default function CartPanel({ onEdit, onCheckout, onClose, mobile }) {
         <AnimatePresence initial={false}>
           {orderChannel === 'dine-in' && (
             <motion.div key="dine" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-2 overflow-hidden">
-              <ChipRow label="Table" options={tables} value={cart.tableId} onChange={(tableId) => updateCart({ tableId })} />
+              <ChipRow
+                label="Table"
+                options={tables.map((table) => ({
+                  ...table,
+                  disabled: isTableLocked(table, { orders, allowTableId: editingOrder?.tableId }),
+                }))}
+                value={cart.tableId}
+                onChange={(tableId) => updateCart({ tableId })}
+              />
               <ChipRow label="Waiter" options={waiters} value={cart.waiterId} onChange={(waiterId) => updateCart({ waiterId })} />
               <Field label="Guest name" value={cart.customer} onChange={(customer) => updateCart({ customer })} placeholder="Optional" />
             </motion.div>
@@ -170,12 +180,35 @@ export default function CartPanel({ onEdit, onCheckout, onClose, mobile }) {
             className="mt-1 h-11 w-full rounded-2xl border border-line bg-bg px-3 text-sm font-semibold text-ink"
           />
         </label>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="block text-[11px] font-bold uppercase tracking-[0.14em] text-muted">
+            Service
+            <input
+              type="number"
+              min="0"
+              value={cart.serviceCharge || 0}
+              onChange={(event) => updateCart({ serviceCharge: Math.max(0, Number(event.target.value) || 0) })}
+              className="mt-1 h-11 w-full rounded-2xl border border-line bg-bg px-3 text-sm font-semibold text-ink"
+            />
+          </label>
+          <label className="block text-[11px] font-bold uppercase tracking-[0.14em] text-muted">
+            Delivery
+            <input
+              type="number"
+              min="0"
+              value={cart.deliveryCharge == null || cart.deliveryCharge === '' ? (orderChannel === 'delivery' ? DELIVERY_FEE : 0) : cart.deliveryCharge}
+              onChange={(event) => updateCart({ deliveryCharge: Math.max(0, Number(event.target.value) || 0) })}
+              className="mt-1 h-11 w-full rounded-2xl border border-line bg-bg px-3 text-sm font-semibold text-ink"
+            />
+          </label>
+        </div>
       </div>
 
       <div className="m-3 rounded-[28px] bg-nav p-4 text-white shadow-dock">
         <Row label="Subtotal" value={pkr(totals.subtotal)} />
         <Row label="Discount" value={pkr(totals.discount)} />
         <Row label="Tax 15%" value={pkr(totals.tax)} />
+        <Row label="Service" value={pkr(totals.service || 0)} />
         <Row label="Delivery" value={pkr(totals.delivery)} />
         <div className="mt-3 flex items-end justify-between">
           <span className="text-xs uppercase tracking-[0.16em] text-white/50">Grand total</span>
@@ -223,7 +256,7 @@ export default function CartPanel({ onEdit, onCheckout, onClose, mobile }) {
               }
               onCheckout()
             }}
-            className="mt-3 h-11 w-full rounded-2xl bg-orange-500 text-sm font-extrabold text-white"
+            className="mt-3 h-11 w-full rounded-2xl bg-[#16a34a] text-sm font-extrabold text-white"
           >
             Checkout · {pkr(totals.total)}
           </button>
@@ -259,8 +292,15 @@ function ChipRow({ label, options, value, onChange }) {
         {options.map((option) => {
           const id = option.id ?? option
           const text = option.label ?? option
+          const disabled = Boolean(option.disabled)
           return (
-            <button key={id} type="button" onClick={() => onChange(id)} className={`rounded-full px-3 py-1.5 text-xs font-bold ${value === id ? 'bg-ink text-white' : 'bg-soft text-ink'}`}>
+            <button
+              key={id}
+              type="button"
+              disabled={disabled}
+              onClick={() => { if (!disabled) onChange(id) }}
+              className={`rounded-full px-3 py-1.5 text-xs font-bold ${disabled ? 'cursor-not-allowed bg-soft text-muted opacity-45' : value === id ? 'bg-ink text-white' : 'bg-soft text-ink'}`}
+            >
               {text}
             </button>
           )

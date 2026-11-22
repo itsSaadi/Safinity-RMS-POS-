@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { ShoppingBag } from 'lucide-react'
 import { employee } from '../data/catalog'
-import { summarize, usePos } from '../context/PosContext'
+import { resolveTaxPercent, summarize, usePos } from '../context/PosContext'
 import { greeting, pkr } from '../utils/format'
 import CategoryRail from '../components/home/CategoryRail'
 import ProductCard from '../components/home/ProductCard'
@@ -13,14 +13,14 @@ import CheckoutModal from '../components/home/CheckoutModal'
 import FoodImage from '../components/ui/FoodImage'
 
 export default function HomePage() {
-  const { cart, addLine, updateLine, recentIds, products, productById, user, paymentTypes, taxInclusive, menuLoading } = usePos()
+  const { cart, addLine, updateLine, recentIds, products, productById, user, paymentTypes, taxInclusive, cashTaxPercent, cardTaxPercent, menuLoading } = usePos()
   const [category, setCategory] = useState('all')
   const [query, setQuery] = useState('')
   const [editor, setEditor] = useState(null)
   const [checkout, setCheckout] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const selectedPayment = paymentTypes.find((item) => item.id === cart.paymentTypeId)
-  const totals = summarize(cart, selectedPayment?.tax, taxInclusive)
+  const totals = summarize(cart, resolveTaxPercent(selectedPayment, { cashTaxPercent, cardTaxPercent, method: selectedPayment?.kind }), taxInclusive)
   const featured = products.find((product) => product.featured)
 
   const visible = useMemo(() => {

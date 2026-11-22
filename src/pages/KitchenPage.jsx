@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Bell, ChefHat } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import { usePos } from '../context/PosContext'
 import { elapsedLabel, lineMeta, orderLabel, typeLabel } from '../utils/format'
 import DealLines from '../components/ui/DealLines'
 
 const columns = [
-  { id: 'new', title: 'New orders', action: 'Start', next: 'preparing', wash: 'bg-orange-100/80 dark:bg-orange-500/10', count: 'bg-orange-500 text-white' },
-  { id: 'preparing', title: 'Preparing', action: 'Ready', next: 'ready', wash: 'bg-amber-100/80 dark:bg-amber-500/10', count: 'bg-amber-500 text-white' },
-  { id: 'ready', title: 'Ready', action: 'Dispatch', next: 'dispatched', wash: 'bg-emerald-100/90 dark:bg-emerald-500/10', count: 'bg-emerald-600 text-white' },
-  { id: 'dispatched', title: 'Dispatch', action: '', next: '', wash: 'bg-stone-200/70 dark:bg-white/5', count: 'bg-stone-700 text-white' },
+  { id: 'cooking', title: 'In kitchen', action: 'Ready', next: 'ready', drop: 'preparing', match: (status) => status === 'new' || status === 'preparing', wash: 'bg-amber-100/80 dark:bg-amber-500/10', count: 'bg-amber-500 text-white' },
+  { id: 'ready', title: 'Ready', action: 'Dispatch', next: 'dispatched', drop: 'ready', match: (status) => status === 'ready', wash: 'bg-emerald-100/90 dark:bg-emerald-500/10', count: 'bg-emerald-600 text-white' },
 ]
 
 const stations = ['All', 'Grill', 'Hot Kitchen', 'Fryer', 'Cold', 'Pastry', 'Bar']
@@ -115,7 +113,7 @@ export default function KitchenPage() {
     return columns.map((column) => ({
       ...column,
       tickets: orders.filter((order) => {
-        if (order.prepStatus !== column.id) return false
+        if (!column.match(order.prepStatus)) return false
         if (station === 'All') return true
         return order.items.some((item) => item.station === station)
       }),
@@ -134,7 +132,7 @@ export default function KitchenPage() {
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange-500">Kitchen display</p>
           <h1 className="font-display text-2xl leading-none">The pass</h1>
           <p className="mt-1 text-[11px] font-bold text-stone-500">
-            Drag a ticket into another column{ordersLoading ? ' · syncing…' : ''}
+            Ready moves it to the pass. Dispatch clears it{ordersLoading ? ' · syncing…' : ''}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -161,7 +159,7 @@ export default function KitchenPage() {
           </div>
         </div>
       </div>
-      <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto pb-20 md:grid-cols-2 xl:grid-cols-4 xl:overflow-hidden">
+      <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto pb-20 md:grid-cols-2 md:overflow-hidden">
         {board.map((column) => (
           <section
             key={column.id}
@@ -175,7 +173,7 @@ export default function KitchenPage() {
               const id = event.dataTransfer.getData('text/plain') || dragId
               setOverColumn(null)
               setDragId(null)
-              if (id) setPrepStatus(id, column.id)
+              if (id && column.drop) setPrepStatus(id, column.drop)
             }}
             className={`flex min-h-[220px] flex-col rounded-2xl p-2 xl:min-h-0 ${column.wash} ${overColumn === column.id ? 'ring-2 ring-orange-500' : column.id === 'ready' && ringing ? 'ring-2 ring-emerald-500' : ''}`}
           >
@@ -224,7 +222,7 @@ function Ticket({ order, now, station, action, onAdvance, onItem, dragging, onDr
   const { productById } = usePos()
   const late = (order.prepStatus === 'new' || order.prepStatus === 'preparing') && now - order.createdAt > DELAY
   const items = station === 'All' ? order.items : order.items.filter((item) => item.station === station)
-  const buttonTone = action === 'Ready' ? 'bg-emerald-600' : action === 'Start' ? 'bg-orange-500' : 'bg-nav'
+  const buttonTone = action === 'Dispatch' ? 'bg-[#16a34a]' : 'bg-[#fff4d6] !text-[#b45309]'
   return (
     <motion.article
       layout
@@ -274,7 +272,7 @@ function Ticket({ order, now, station, action, onAdvance, onItem, dragging, onDr
       </ul>
       {onAdvance && (
         <button type="button" onClick={onAdvance} className={`mt-2 flex h-8 w-full items-center justify-center gap-1.5 rounded-lg text-xs font-extrabold text-white ${buttonTone}`}>
-          {action === 'Ready' ? <Bell size={13} /> : action === 'Start' ? <ChefHat size={13} /> : null}
+          {action === 'Ready' ? <Bell size={13} className="!text-[#b45309]" /> : null}
           {action}
         </button>
       )}

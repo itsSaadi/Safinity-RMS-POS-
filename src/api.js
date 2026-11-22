@@ -1,3 +1,5 @@
+import { flattenChoices } from './utils/choices'
+
 const API = (import.meta.env.VITE_API_URL || 'https://rms-api.unfoldpk.com/api/v1').replace(/\/$/, '')
 const REFRESH_KEY = 'orra.pos.refresh'
 const BRANCH_KEY = 'orra.pos.branch'
@@ -206,8 +208,14 @@ export function asList(payload) {
   return []
 }
 
-export function paymentKindFromCode(code = '', name = '') {
-  const key = `${code} ${name}`.toUpperCase()
+export function objectIdOrNull(value) {
+  const id = String(value ?? '').trim()
+  return /^[a-f\d]{24}$/i.test(id) ? id : null
+}
+
+export function paymentKindFromName(name = '') {
+  const key = String(name || '').trim().toUpperCase()
+  if (!key) return ''
   if (/PAY.?LATER|LATER|UNPAID/.test(key)) return 'later'
   if (/CREDIT|ACCOUNT/.test(key)) return 'credit'
   if (/MIX/.test(key)) return 'mixed'
@@ -216,6 +224,23 @@ export function paymentKindFromCode(code = '', name = '') {
   if (/CARD|VISA|MASTER|DEBIT/.test(key)) return 'card'
   if (/CASH/.test(key)) return 'cash'
   return 'cash'
+}
+
+const TABLE_HOLD_STATUSES = new Set(['PENDING', 'RECEIVED', 'PREPARING'])
+
+export function isTableLocked(table, { orders = [], allowTableId = '' } = {}) {
+  if (!table) return true
+  if (allowTableId && String(table.id) === String(allowTableId)) return false
+  const status = String(table.status || 'AVAILABLE').toUpperCase()
+  if (status === 'OCCUPIED' || status === 'RESERVED' || status === 'OUT_OF_SERVICE') return true
+  return orders.some((order) => {
+    if (String(order.tableId || '') !== String(table.id)) return false
+    const apiStatus = String(order.apiStatus || '').toUpperCase()
+    if (apiStatus === 'CANCELLED' || apiStatus === 'READY' || apiStatus === 'DISPATCHED') return false
+    if (TABLE_HOLD_STATUSES.has(apiStatus)) return true
+    const prep = String(order.prepStatus || '').toLowerCase()
+    return prep === 'new' || prep === 'preparing'
+  })
 }
 
 export async function fetchTables(branchId, restaurantId) {
@@ -335,11 +360,14 @@ export function mapOrder(row, extras = {}) {
   const amountPaid = Number(row.amountPaid) || 0
   const paymentStatus = String(row.paymentStatus || 'UNPAID').toLowerCase()
   const address = row.deliveryAddress || {}
+  const noteLines = String(row.notes || '').split('\n')
+  const guestLine = noteLines.find((line) => /^Guest:\s+\S/.test(line))
+  const guestName = guestLine ? guestLine.replace(/^Guest:\s+/, '').trim() : ''
   return {
     id,
     orderNumber: row.orderNumber || '',
     createdAt: row.createdAt ? new Date(row.createdAt).getTime() : Date.now(),
-    customer: extras.customer || row.customerName || '',
+    customer: extras.customer || row.customerName || guestName || '',
     customerId: row.customerId ? String(row.customerId) : '',
     phone: address.phone || extras.phone || '',
     type: normalizeOrderTypeCode(row.orderType || 'DINE_IN'),
@@ -353,7 +381,7 @@ export function mapOrder(row, extras = {}) {
     address: address.line1 || '',
     externalRef: address.notes || '',
     paymentStatus,
-    paymentMethod: paymentKindFromCode(row.paymentTypeCode, row.paymentTypeName),
+    paymentMethod: paymentKindFromName(row.paymentTypeName),
     paymentTypeId: row.paymentTypeId ? String(row.paymentTypeId) : '',
     paymentTypeName: row.paymentTypeName || '',
     cashAmount: 0,
@@ -369,13 +397,17 @@ export function mapOrder(row, extras = {}) {
     taxAmount: Number(row.taxAmount) || 0,
     subtotal: Number(row.subtotal) || 0,
     discountAmount: Number(row.discountAmount) || 0,
+    serviceCharge: Number(row.serviceCharge) || 0,
     deliveryCharge: Number(row.deliveryCharge) || 0,
     notes: row.notes || '',
     items: (row.items || []).map((item, index) => {
       const choiceMap = {}
       for (const choice of item.choices || []) {
         if (choice.choiceGroupId && choice.choiceId) {
-          choiceMap[String(choice.choiceGroupId)] = String(choice.choiceId)
+          const key = String(choice.choiceGroupId)
+          const id = String(choice.choiceId)
+          const picked = Array.isArray(choiceMap[key]) ? choiceMap[key] : []
+          if (!picked.includes(id)) choiceMap[key] = [...picked, id]
         }
       }
       return {
@@ -389,6 +421,10 @@ export function mapOrder(row, extras = {}) {
         variation: item.variationName || null,
         choiceMap,
         choices: (item.choices || []).map((choice) => choice.name).filter(Boolean),
+        choiceDetails: (item.choices || []).map((choice) => ({
+          name: choice.name,
+          price: Number(choice.unitPrice) || 0,
+        })).filter((choice) => choice.name),
         addons: [],
         instructions: item.notes || '',
         ready: Boolean(item.ready),
@@ -403,10 +439,7 @@ export function buildOrderItemsPayload(lines = []) {
     variationId: line.variationId ? String(line.variationId) : null,
     quantity: Math.max(1, Number(line.qty) || 1),
     notes: line.instructions || '',
-    choices: Object.entries(line.choiceMap || {}).map(([choiceGroupId, choiceId]) => ({
-      choiceId: String(choiceId),
-      choiceGroupId: String(choiceGroupId),
-    })),
+    choices: flattenChoices(line.choiceMap),
   }))
 }
 
@@ -469,17 +502,13 @@ export function mapRiders(rows = []) {
 }
 
 export function mapPaymentTypes(rows = []) {
-  return asList(rows).map((row) => {
-    const code = row.code || ''
-    return {
-      id: String(row.id),
-      label: row.name || code || 'Payment',
-      code,
-      kind: paymentKindFromCode(code, row.name),
-      tax: Number(row.tax) || 0,
-      sortOrder: Number(row.sortOrder) || 0,
-    }
-  }).sort((a, b) => a.sortOrder - b.sortOrder)
+  return asList(rows).map((row) => ({
+    id: String(row.id),
+    label: row.name || 'Payment',
+    kind: paymentKindFromName(row.name),
+    tax: Number(row.tax) || 0,
+    sortOrder: Number(row.sortOrder) || 0,
+  })).sort((a, b) => a.sortOrder - b.sortOrder)
 }
 
 export async function api(path, options = {}) {
@@ -599,7 +628,7 @@ export function mapCatalog(categories = [], orderType = 'DINE_IN') {
         popular: Boolean(item.isFavorite) || index < 6,
         featured: index === 0,
         description: item.description || item.ingredient || '',
-        image: item.imageUrl || item.image || '',
+        image: catalogImage(item),
         isDeal: Boolean(item.isDeal),
         dealItems: item.dealItems || [],
         variations,
@@ -611,6 +640,16 @@ export function mapCatalog(categories = [], orderType = 'DINE_IN') {
   }
 
   return { categories: cats, products }
+}
+
+function catalogImage(row) {
+  const raw = String(row?.imageUrl || row?.image || '').trim()
+  if (!raw) return ''
+  if (/^https?:\/\//i.test(raw) || raw.startsWith('data:') || raw.startsWith('blob:')) return raw
+  const origin = (import.meta.env.VITE_API_URL || 'https://rms-api.unfoldpk.com/api/v1')
+    .replace(/\/api\/v1\/?$/, '')
+    .replace(/\/$/, '')
+  return raw.startsWith('/') ? `${origin}${raw}` : `${origin}/uploads/${raw.replace(/^\/+/, '')}`
 }
 
 function mapGroups(groups = [], orderType) {

@@ -112,7 +112,7 @@ function CollectForm({ orderId }) {
                     setPaymentTypeId(item.id)
                     setError('')
                   }}
-                  className={`h-12 rounded-2xl text-sm font-bold ${method === item.kind ? 'bg-ink text-white' : 'bg-soft'}`}
+                  className={`h-12 rounded-2xl text-sm font-bold ${method === item.kind ? 'bg-[#16a34a] text-white' : 'bg-soft'}`}
                 >
                   {item.label}
                 </button>
@@ -151,7 +151,7 @@ function CollectForm({ orderId }) {
         </div>
         <div className="flex justify-end gap-2 border-t border-line px-5 py-4">
           <button type="button" onClick={cancelCollect} className="h-12 rounded-2xl bg-soft px-4 text-sm font-bold">Cancel</button>
-          <button type="button" onClick={charge} disabled={busy} className="h-12 rounded-2xl bg-orange-500 px-4 text-sm font-bold text-white disabled:opacity-60">Take {pkr(due)}</button>
+          <button type="button" onClick={charge} disabled={busy} className="h-12 rounded-2xl bg-[#16a34a] px-4 text-sm font-bold text-white disabled:opacity-60">Take {pkr(due)}</button>
         </div>
       </div>
     </div>
